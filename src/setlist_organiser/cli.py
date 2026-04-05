@@ -9,6 +9,7 @@ from pathlib import Path
 from .models import PlannedAction, Category
 from .organiser import execute_plan
 from .planner import plan_organisation
+from .config import load_keyword_overrides, build_effective_keywords
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -40,12 +41,19 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Only print the summary line (no per-file listing).",
     )
-
     parser.add_argument(
         "--summary-only",
         action="store_true",
         help="Print category counts"
         )
+
+    parser.add_argument(
+        "--config",
+        type=Path,
+        default=None,
+        help="Path to JSON config file with extra keyword mappings.",
+    )
+
     return parser
 
 
@@ -80,9 +88,15 @@ def main(argv: list[str] | None = None) -> int:
     dry_run: bool = args.dry_run
     quiet: bool = args.quiet
     summary_only: bool = args.summary_only
+    config_path = Path | None = args.config
+
+    keywords = None
+    if config_path:
+        config_keywords = load_keyword_overrides(config_path)
+        keywords = build_effective_keywords(defaults=CATEGORY_KEYWORDS, overrides=config_keywords)
 
     try:
-        actions = plan_organisation(source_dir, output_root)
+        actions = plan_organisation(source_dir, output_root, keywords=keywords)
     except NotADirectoryError as exc:
         print(exc, file=sys.stderr)
         return 1

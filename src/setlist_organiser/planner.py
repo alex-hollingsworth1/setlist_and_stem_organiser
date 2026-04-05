@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from .classifier import classify_path
-from .models import PlannedAction
+from .models import Category, PlannedAction
 
 _AUDIO_SUFFIXES: frozenset[str] = frozenset(
     {
@@ -46,7 +46,12 @@ def _allocate_unique_destination(dest: Path, used: set[Path]) -> Path:
         n += 1
 
 
-def plan_organisation(source_dir: Path, output_root: Path) -> list[PlannedAction]:
+def plan_organisation(
+    source_dir: Path,
+    output_root: Path,
+    *,
+    keywords: dict[Category, tuple[str, ...]] | None = None,
+) -> list[PlannedAction]:
     """
     Scan ``source_dir`` (non-recursive) for audio files, classify each stem,
     and return planned copy destinations under ``output_root / <CATEGORY> /``.
@@ -63,7 +68,7 @@ def plan_organisation(source_dir: Path, output_root: Path) -> list[PlannedAction
     for path in sorted(resolved_source.iterdir(), key=lambda p: p.as_posix()):
         if not _is_audio_file(path):
             continue
-        classified = classify_path(path)
+        classified = classify_path(path, keywords=keywords)
         category = classified.category
         base_dest = output_base / category.value / path.name
         dest = _allocate_unique_destination(base_dest, used_destinations)
