@@ -16,3 +16,6 @@ where = ["src"]
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 testpaths = ["tests"]
+
+[project.scripts]
+setlist-organiser = "setlist_organiser.cli:main"

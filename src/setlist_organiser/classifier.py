@@ -33,6 +33,8 @@ CATEGORY_KEYWORDS: dict[Category, tuple[str, ...]] = {
         "bongos",
         "clap",
         "claps",
+        "stomp",
+        "stomps",
     ),
     Category.DRUMS: (
         "drum",
@@ -47,6 +49,8 @@ CATEGORY_KEYWORDS: dict[Category, tuple[str, ...]] = {
         "crash",
         "overhead",
         "oh",
+        "rimshot",
+        "rim",
     ),
     Category.BASS: (
         "bass",
@@ -69,7 +73,6 @@ CATEGORY_KEYWORDS: dict[Category, tuple[str, ...]] = {
         "synth",
         "pad",
         "arp",
-        "synth",
         "synths",
         "synth pad",
     ),
@@ -78,8 +81,6 @@ CATEGORY_KEYWORDS: dict[Category, tuple[str, ...]] = {
         "guitar",
         "acoustic",
         "electric",
-        "lead gtr",
-        "rhythm gtr",
         "lead gtr",
         "rhythm gtr",
     ),
@@ -151,9 +152,6 @@ CATEGORY_KEYWORDS: dict[Category, tuple[str, ...]] = {
 
 
 CATEGORY_PRIORITY: tuple[Category, ...] = (
-    Category.STRINGS,
-    Category.BRASS,
-    Category.WOODWIND,
     Category.CLICK,
     Category.CUES,
     Category.BVS,
@@ -165,6 +163,9 @@ CATEGORY_PRIORITY: tuple[Category, ...] = (
     Category.BASS,
     Category.KEYS,
     Category.GTR,
+    Category.STRINGS,
+    Category.BRASS,
+    Category.WOODWIND,
     Category.OTHER,
 )
 

@@ -17,6 +17,9 @@ def test_classify_direct_hits_for_each_category() -> None:
         "song_fx_riser.wav": Category.FX,
         "song_click.wav": Category.CLICK,
         "song_cues_talkback.wav": Category.CUES,
+        "song_strings_violin": Category.STRINGS,
+        "song_brass_trumpet": Category.BRASS,
+        "song_woodwind_flute": Category.WOODWIND
     }
 
     for name, expected in cases.items():

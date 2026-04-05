@@ -41,10 +41,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Only print the summary line (no per-file listing).",
     )
 
-    # parser.add_argument(
-    #     "--summary-only",
-    #     help="Print category counts"
-    #     )
+    parser.add_argument(
+        "--summary-only",
+        action="store_true",
+        help="Print category counts"
+        )
     return parser
 
 
@@ -53,9 +54,15 @@ def _print_actions(actions: list[PlannedAction]) -> None:
         line = f"{action.source} -> {action.destination} [{action.category.value}]"
         print(line)
 
-# def _print_categories(categories) -> None:
-#     total = len(categories)    
-#     print(f"The total number of categories is {total}.")
+def _print_category_summary(actions: list [PlannedAction]) -> None:
+    counts = {}
+
+    for action in actions:
+        category = action.category
+        counts[category] = counts.get(category, 0) + 1
+
+    for category, count in counts.items():
+        print(f"{category.value}: {count}")
 
 
 
@@ -72,6 +79,7 @@ def main(argv: list[str] | None = None) -> int:
     output_root: Path = args.output_root
     dry_run: bool = args.dry_run
     quiet: bool = args.quiet
+    summary_only: bool = args.summary_only
 
     try:
         actions = plan_organisation(source_dir, output_root)
@@ -85,6 +93,9 @@ def main(argv: list[str] | None = None) -> int:
 
     if not quiet:
         _print_actions(actions)
+
+    if summary_only:
+        _print_category_summary(actions)
 
     try:
         report = execute_plan(actions, dry_run=dry_run)
