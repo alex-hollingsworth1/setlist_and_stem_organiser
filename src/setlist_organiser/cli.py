@@ -6,7 +6,8 @@ import argparse
 import sys
 from pathlib import Path
 
-from .models import PlannedAction, Category
+from .classifier import CATEGORY_KEYWORDS
+from .models import PlannedAction
 from .organiser import execute_plan
 from .planner import plan_organisation
 from .config import load_keyword_overrides, build_effective_keywords
@@ -62,7 +63,7 @@ def _print_actions(actions: list[PlannedAction]) -> None:
         line = f"{action.source} -> {action.destination} [{action.category.value}]"
         print(line)
 
-def _print_category_summary(actions: list [PlannedAction]) -> None:
+def _print_category_summary(actions: list[PlannedAction]) -> None:
     counts = {}
 
     for action in actions:
@@ -88,7 +89,7 @@ def main(argv: list[str] | None = None) -> int:
     dry_run: bool = args.dry_run
     quiet: bool = args.quiet
     summary_only: bool = args.summary_only
-    config_path = Path | None = args.config
+    config_path: Path | None = args.config
 
     keywords = None
     if config_path:

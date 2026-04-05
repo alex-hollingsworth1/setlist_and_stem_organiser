@@ -10,6 +10,8 @@ from .models import Category, ClassifiedFile
 
 _SEPARATOR_RE = re.compile(r"[^a-z0-9]+")
 _SPACE_RE = re.compile(r"\s+")
+_DIGIT_LETTER_RE = re.compile(r"(\d)([a-zA-Z])")
+_LETTER_DIGIT_RE = re.compile(r"([a-zA-Z])(\d)")
 
 
 @dataclass(frozen=True, slots=True)
@@ -210,6 +212,8 @@ CATEGORY_PRIORITY: tuple[Category, ...] = (
 
 
 def _normalize_name(name: str) -> str:
+    name = _DIGIT_LETTER_RE.sub(r"\1 \2", name)
+    name = _LETTER_DIGIT_RE.sub(r"\1 \2", name)
     cleaned = _SEPARATOR_RE.sub(" ", name.lower())
     return _SPACE_RE.sub(" ", cleaned).strip()
 
