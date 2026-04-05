@@ -123,11 +123,37 @@ CATEGORY_KEYWORDS: dict[Category, tuple[str, ...]] = {
         "count in",
         "countin",
     ),
+    Category.STRINGS: (
+        "strings",
+        "string",
+        "violin",
+        "viola",
+        "cello",
+    ),
+    Category.BRASS: (
+        "brass",
+        "trumpet",
+        "trombone",
+        "tuba",
+        "horn",
+        "horns",
+    ),
+    Category.WOODWIND: (
+        "woodwind",
+        "flute",
+        "oboe",
+        "clarinet",
+        "saxophone",
+        "bassoon",
+    ),
     Category.OTHER: (),
 }
 
 
 CATEGORY_PRIORITY: tuple[Category, ...] = (
+    Category.STRINGS,
+    Category.BRASS,
+    Category.WOODWIND,
     Category.CLICK,
     Category.CUES,
     Category.BVS,

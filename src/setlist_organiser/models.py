@@ -21,6 +21,9 @@ class Category(StrEnum):
     FX = "FX"
     CLICK = "CLICK"
     CUES = "CUES"
+    STRINGS = "STRINGS"
+    BRASS = "BRASS"
+    WOODWIND = "WOODWIND"
     OTHER = "OTHER"
 
 
