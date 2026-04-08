@@ -11,6 +11,7 @@ from .models import PlannedAction
 from .organiser import execute_plan
 from .planner import plan_organisation
 from .config import load_keyword_overrides, build_effective_keywords
+from .reviewer import review_actions
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -63,6 +64,11 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Search through nested folders"
     )
+    parser.add_argument(
+        "--review",
+        action="store_true",
+        help="Interactively review files in OTHER before copying.",
+    )
 
     return parser
 
@@ -112,6 +118,7 @@ def main(argv: list[str] | None = None) -> int:
     show_other: bool = args.show_other
     config_path: Path | None = args.config
     recursive: bool = args.recursive
+    review: bool = args.review
 
     keywords = None
     if config_path:
@@ -142,8 +149,12 @@ def main(argv: list[str] | None = None) -> int:
     if recursive:
         pass
 
+    actions_to_execute = actions
+    if review:
+        actions_to_execute = review_actions(actions)
+
     try:
-        report = execute_plan(actions, dry_run=dry_run)
+        report = execute_plan(actions_to_execute, dry_run=dry_run)
     except OSError as exc:
         print(exc, file=sys.stderr)
         return 1
