@@ -99,8 +99,6 @@ def show_other_files(actions: list[PlannedAction]) -> int:
     return total
     
 
-
-
 def main(argv: list[str] | None = None) -> int:
     """
     Run the CLI. Exit codes: 0 success, 1 error (bad paths, I/O failure).
@@ -135,7 +133,7 @@ def main(argv: list[str] | None = None) -> int:
         print("No audio files found in source directory.", file=sys.stderr)
         return 0
 
-    if not quiet and not summary_only and not show_other:
+    if not quiet and not summary_only and not show_other and not review:
         _print_actions(actions)
 
     if summary_only:
@@ -145,9 +143,6 @@ def main(argv: list[str] | None = None) -> int:
         print("OTHER:")
         total = show_other_files(actions)
         print(f"{total} files")
-
-    if recursive:
-        pass
 
     actions_to_execute = actions
     if review:
@@ -163,9 +158,6 @@ def main(argv: list[str] | None = None) -> int:
             mode = "Dry-run" if report.dry_run else "Copied"
             print(f"{mode}: {report.copied_files} file(s).")
         
-
-        
-
     return 0
 
 

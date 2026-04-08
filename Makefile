@@ -7,6 +7,9 @@ quiet:
 show-other:
 	source .venv/bin/activate && setlist-organiser ../../AUDIO_FILES_FOR_TESTING output --show-other
 
+review:
+	source .venv/bin/activate && setlist-organiser ../../AUDIO_FILES_FOR_TESTING output --review
+
 summary:
 	source .venv/bin/activate && setlist-organiser ../../AUDIO_FILES_FOR_TESTING output --summary-only
 
@@ -15,6 +18,3 @@ dry-run:
 
 run:
 	source .venv/bin/activate && setlist-organiser ../../AUDIO_FILES_FOR_TESTING output
-
-
-
