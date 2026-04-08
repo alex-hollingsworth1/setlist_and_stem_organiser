@@ -47,12 +47,16 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Print category counts"
         )
-
     parser.add_argument(
         "--config",
         type=Path,
         default=None,
         help="Path to JSON config file with extra keyword mappings.",
+    )
+    parser.add_argument(
+        "--show-other",
+        action="store_true",
+        help="Print files in OTHER category"
     )
 
     return parser
@@ -60,7 +64,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 def _print_actions(actions: list[PlannedAction]) -> None:
     for action in actions:
-        line = f"{action.source} -> {action.destination} [{action.category.value}]"
+        line = f"{action.source.name} -> [{action.category.value}]"
         print(line)
 
 def _print_category_summary(actions: list[PlannedAction]) -> None:
@@ -72,6 +76,17 @@ def _print_category_summary(actions: list[PlannedAction]) -> None:
 
     for category, count in counts.items():
         print(f"{category.value}: {count}")
+
+def show_other_files(actions: list[PlannedAction]) -> int:
+    total = 0
+    for action in actions:
+        if action.category.value == "OTHER":
+            line = f"{action.source.name}"
+            print(line)
+            total += 1
+    
+    return total
+    
 
 
 
@@ -89,6 +104,7 @@ def main(argv: list[str] | None = None) -> int:
     dry_run: bool = args.dry_run
     quiet: bool = args.quiet
     summary_only: bool = args.summary_only
+    show_other: bool = args.show_other
     config_path: Path | None = args.config
 
     keywords = None
@@ -106,11 +122,16 @@ def main(argv: list[str] | None = None) -> int:
         print("No audio files found in source directory.", file=sys.stderr)
         return 0
 
-    if not quiet:
+    if not quiet and not summary_only and not show_other:
         _print_actions(actions)
 
     if summary_only:
         _print_category_summary(actions)
+
+    if show_other:
+        print("OTHER:")
+        total = show_other_files(actions)
+        print(f"{total} files")
 
     try:
         report = execute_plan(actions, dry_run=dry_run)
@@ -118,8 +139,9 @@ def main(argv: list[str] | None = None) -> int:
         print(exc, file=sys.stderr)
         return 1
 
-    mode = "Dry-run" if report.dry_run else "Copied"
-    print(f"{mode}: {report.copied_files} file(s).")
+    if not quiet and not show_other:
+            mode = "Dry-run" if report.dry_run else "Copied"
+            print(f"{mode}: {report.copied_files} file(s).")
 
     return 0
 
