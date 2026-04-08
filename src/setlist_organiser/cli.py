@@ -69,6 +69,11 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Interactively review files in OTHER before copying.",
     )
+    parser.add_argument(
+        "--move",
+        action="store_true",
+        help="Move stems to folder as opposed to copying them."
+    )
 
     return parser
 
@@ -117,6 +122,7 @@ def main(argv: list[str] | None = None) -> int:
     config_path: Path | None = args.config
     recursive: bool = args.recursive
     review: bool = args.review
+    move: bool = args.move
 
     keywords = None
     if config_path:
@@ -149,13 +155,13 @@ def main(argv: list[str] | None = None) -> int:
         actions_to_execute = review_actions(actions)
 
     try:
-        report = execute_plan(actions_to_execute, dry_run=dry_run)
+        report = execute_plan(actions_to_execute, dry_run=dry_run, move=move)
     except OSError as exc:
         print(exc, file=sys.stderr)
         return 1
 
     if not quiet and not show_other:
-            mode = "Dry-run" if report.dry_run else "Copied"
+            mode = "Dry-run" if report.dry_run else ("Moved" if move else "Copied")
             print(f"{mode}: {report.copied_files} file(s).")
         
     return 0

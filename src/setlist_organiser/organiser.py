@@ -8,7 +8,7 @@ from pathlib import Path
 from .models import PlannedAction, RunReport
 
 
-def execute_plan(actions: list[PlannedAction], *, dry_run: bool) -> RunReport:
+def execute_plan(actions: list[PlannedAction], *, dry_run: bool, move: bool = False) -> RunReport:
     """
     Run each planned copy, or preview it.
 
@@ -28,9 +28,15 @@ def execute_plan(actions: list[PlannedAction], *, dry_run: bool) -> RunReport:
         )
 
     copied = 0
-    for action in actions:
-        _copy_one(action)
-        copied += 1
+
+    if move:
+        for action in actions:
+            _move_one(action)
+            copied += 1
+    else:
+        for action in actions:
+            _copy_one(action)
+            copied += 1
 
     return RunReport(
         total_files=total,
@@ -43,3 +49,8 @@ def _copy_one(action: PlannedAction) -> None:
     destination_parent = action.destination.parent
     destination_parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(action.source, action.destination)
+
+def _move_one(action: PlannedAction) -> None:
+    destination_parent = action.destination.parent
+    destination_parent.mkdir(parents=True, exist_ok=True)
+    shutil.move(action.source, action.destination)
