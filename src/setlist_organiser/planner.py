@@ -51,6 +51,7 @@ def plan_organisation(
     output_root: Path,
     *,
     keywords: dict[Category, tuple[str, ...]] | None = None,
+    recursive: bool = False
 ) -> list[PlannedAction]:
     """
     Scan ``source_dir`` (non-recursive) for audio files, classify each stem,
@@ -65,7 +66,10 @@ def plan_organisation(
     used_destinations: set[Path] = set()
     actions: list[PlannedAction] = []
 
-    for path in sorted(resolved_source.iterdir(), key=lambda p: p.as_posix()):
+    for path in sorted(
+    resolved_source.rglob("*") if recursive else resolved_source.iterdir(),
+    key=lambda p: p.as_posix()
+    ):
         if not _is_audio_file(path):
             continue
         classified = classify_path(path, keywords=keywords)

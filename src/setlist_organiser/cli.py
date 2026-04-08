@@ -58,6 +58,11 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Print files in OTHER category"
     )
+    parser.add_argument(
+        "--recursive",
+        action="store_true",
+        help="Search through nested folders"
+    )
 
     return parser
 
@@ -106,6 +111,7 @@ def main(argv: list[str] | None = None) -> int:
     summary_only: bool = args.summary_only
     show_other: bool = args.show_other
     config_path: Path | None = args.config
+    recursive: bool = args.recursive
 
     keywords = None
     if config_path:
@@ -113,7 +119,7 @@ def main(argv: list[str] | None = None) -> int:
         keywords = build_effective_keywords(defaults=CATEGORY_KEYWORDS, overrides=config_keywords)
 
     try:
-        actions = plan_organisation(source_dir, output_root, keywords=keywords)
+        actions = plan_organisation(source_dir, output_root, keywords=keywords, recursive=recursive)
     except NotADirectoryError as exc:
         print(exc, file=sys.stderr)
         return 1
@@ -133,6 +139,9 @@ def main(argv: list[str] | None = None) -> int:
         total = show_other_files(actions)
         print(f"{total} files")
 
+    if recursive:
+        pass
+
     try:
         report = execute_plan(actions, dry_run=dry_run)
     except OSError as exc:
@@ -142,6 +151,9 @@ def main(argv: list[str] | None = None) -> int:
     if not quiet and not show_other:
             mode = "Dry-run" if report.dry_run else "Copied"
             print(f"{mode}: {report.copied_files} file(s).")
+        
+
+        
 
     return 0
 
