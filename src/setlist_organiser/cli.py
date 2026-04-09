@@ -126,8 +126,18 @@ def main(argv: list[str] | None = None) -> int:
 
     keywords = None
     if config_path:
-        config_keywords = load_keyword_overrides(config_path)
-        keywords = build_effective_keywords(defaults=CATEGORY_KEYWORDS, overrides=config_keywords)
+        try:
+            config_keywords = load_keyword_overrides(config_path)
+            keywords = build_effective_keywords(defaults=CATEGORY_KEYWORDS, overrides=config_keywords)
+        except FileNotFoundError:
+            print(f"Config file not found: {config_path}", file=sys.stderr)
+            return 1
+        except json.JSONDecodeError:
+            print(f"Invalid JSON in config file: {config_path}", file=sys.stderr)
+            return 1
+        except ValueError as exc:
+            print(exc, file=sys.stderr)
+            return 1
 
     try:
         actions = plan_organisation(source_dir, output_root, keywords=keywords, recursive=recursive)
