@@ -5,10 +5,30 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "setlist-organiser"
 version = "0.1.0"
-description = "CLI prototype for classifying and organising exported stems."
+description = "CLI tool for musical directors to classify and organise audio stem exports by instrument category."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = []
+authors = [
+    {name = "Alex Hollingsworth", email = "alex@hsoundworks.co.uk"}
+]
+license = {text = "MIT"}
+keywords = ["audio", "music", "stems", "ableton", "playback", "musical-director", "cli"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Multimedia :: Sound/Audio",
+]
+
+[project.urls]
+Homepage = "https://github.com/alex-hollingsworth1/setlist_and_stem_organiser"
+Issues = "https://github.com/alex-hollingsworth1/setlist_and_stem_organiser/issues"
 
 [tool.setuptools.packages.find]
 where = ["src"]
