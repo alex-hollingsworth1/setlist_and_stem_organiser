@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from .classifier import classify_path
+from .classifier import classify_path, CATEGORY_PRIORITY
 from .models import Category, PlannedAction
 
 _AUDIO_SUFFIXES: frozenset[str] = frozenset(
@@ -51,7 +51,8 @@ def plan_organisation(
     output_root: Path,
     *,
     keywords: dict[Category, tuple[str, ...]] | None = None,
-    recursive: bool = False
+    recursive: bool = False,
+    numbered: bool = False
 ) -> list[PlannedAction]:
     """
     Scan ``source_dir`` (non-recursive) for audio files, classify each stem,
@@ -74,7 +75,12 @@ def plan_organisation(
             continue
         classified = classify_path(path, keywords=keywords)
         category = classified.category
-        base_dest = output_base / category.value / path.name
+        if numbered:
+            index = CATEGORY_PRIORITY.index(category)
+            folder_name = f"{index + 1:02d}_{category.value}"
+            base_dest = output_base / folder_name / path.name
+        else:
+            base_dest = output_base / category.value / path.name
         dest = _allocate_unique_destination(base_dest, used_destinations)
         actions.append(
             PlannedAction(source=path, destination=dest, category=category)

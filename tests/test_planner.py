@@ -58,3 +58,16 @@ def test_allocate_unique_destination_suffixes_on_collision(tmp_path: Path) -> No
     assert first == tmp_path / "KEYS" / "dup.wav"
     assert second == tmp_path / "KEYS" / "dup_2.wav"
     assert third == tmp_path / "KEYS" / "dup_3.wav"
+
+def test_plan_organisation_numbered_folders(tmp_path: Path) -> None:
+    source = tmp_path / "in"
+    source.mkdir()
+    out = tmp_path / "out"
+    (source / "song_drum_kit.wav").write_bytes(b"")
+
+    actions = plan_organisation(source, out, numbered=True)
+
+    assert len(actions) == 1
+    assert "_DRUMS" in str(actions[0].destination)
+    assert actions[0].category == Category.DRUMS
+

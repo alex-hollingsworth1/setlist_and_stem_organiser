@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from pathlib import Path
 
@@ -74,6 +75,11 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Move stems to folder as opposed to copying them."
     )
+    parser.add_argument(
+        "--numbered",
+        action="store_true",
+        help="Add a numbered tag to each of the stem directories"
+    )
 
     return parser
 
@@ -123,6 +129,7 @@ def main(argv: list[str] | None = None) -> int:
     recursive: bool = args.recursive
     review: bool = args.review
     move: bool = args.move
+    numbered: bool = args.numbered
 
     keywords = None
     if config_path:
@@ -140,7 +147,7 @@ def main(argv: list[str] | None = None) -> int:
             return 1
 
     try:
-        actions = plan_organisation(source_dir, output_root, keywords=keywords, recursive=recursive)
+        actions = plan_organisation(source_dir, output_root, keywords=keywords, recursive=recursive, numbered=numbered)
     except NotADirectoryError as exc:
         print(exc, file=sys.stderr)
         return 1
