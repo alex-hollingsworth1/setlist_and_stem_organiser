@@ -8,6 +8,15 @@ def load_keyword_overrides(path: Path) -> dict[Category, tuple[str, ...]]:
     text = path.read_text()
     data = json.loads(text)
 
+    if not isinstance(data, dict):
+        raise ValueError("Config must be a JSON object at the top level")
+    
+    if "keywords" not in data:
+        raise ValueError("Config must contain a 'keywords' field")
+    
+    if not isinstance(data["keywords"], dict):
+        raise ValueError("'keywords' must be an object mapping categories to keyword lists")
+
     for category_name in data["keywords"]:
         if category_name not in Category.__members__:
             raise ValueError(f"Unknown category: {category_name}")
