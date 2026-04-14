@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <title>Setlist Organiser Preview</title>
+</head>
+
+<body>
+    <h1>Stem Organiser Preview</h1>
+
+    <form method="post" action="/preview">
+        <label>
+            Source directory:
+            <input type="text" name="source_dir" value="{{ source_dir }}" required />
+        </label>
+        <br /><br />
+        <label>
+            Output root:
+            <input type="text" name="output_root" value="{{ output_root }}" required />
+        </label>
+        <br /><br />
+        <button type="submit">Preview plan</button>
+    </form>
+
+    {% if error %}
+    <p style="color: red;">{{ error }}</p>
+    {% endif %}
+
+    {% if actions is not none %}
+    <h2>Planned actions ({{ actions|length }})</h2>
+    <ul>
+        {% for action in actions %}
+        <li>
+            {{ action.source }} → {{ action.destination }} [{{ action.category.value }}]
+        </li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+</body>
+
+</html>
