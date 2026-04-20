@@ -20,6 +20,7 @@ def index():
         report=None,
         source_dir="../../AUDIO_FILES_FOR_TESTING", # TEMP: hardcoded local test paths for development only
         output_root="output", # TEMP: hardcoded local test paths for development only
+        categories=Category,
     )
 
 
@@ -37,6 +38,7 @@ def preview():
             report=None,
             source_dir=source_dir,
             output_root=output_root,
+            categories=Category,
         )
     except NotADirectoryError as exc:
         return render_template(
@@ -46,6 +48,7 @@ def preview():
             report=None,
             source_dir=source_dir,
             output_root=output_root,
+            categories=Category,
         )
 
 
@@ -73,6 +76,7 @@ def execute():
         error=None,
         source_dir="",
         output_root="",
+        categories=Category,
     )
 
 

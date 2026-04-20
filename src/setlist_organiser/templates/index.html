@@ -36,11 +36,22 @@
         <h2>Planned actions ({{ actions|length }})</h2>
         <ul>
             {% for action in actions %}
-            <li>
+            <li {% if action.category.value=="OTHER" %}style="color: darkorange; font-weight: 600;" {% endif %}>
                 {{ action.source }} → {{ action.destination }} [{{ action.category.value }}]
+
                 <input type="hidden" name="source" value="{{ action.source }}">
                 <input type="hidden" name="destination" value="{{ action.destination }}">
-                <input type="hidden" name="category" value="{{ action.category.value }}">
+
+                <label>
+                    Category:
+                    <select name="category">
+                        {% for c in categories %}
+                        <option value="{{ c.value }}" {% if c.value==action.category.value %}selected{% endif %}>
+                            {{ c.value }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </label>
             </li>
             {% endfor %}
         </ul>
