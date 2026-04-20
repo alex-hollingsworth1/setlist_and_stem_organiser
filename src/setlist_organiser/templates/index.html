@@ -9,6 +9,10 @@
 <body>
     <h1>Stem Organiser Preview</h1>
 
+    {% if report %}
+    <p style="color: green;">Successfully copied {{ report.copied_files }} files.</p>
+    {% endif %}
+
     <form method="post" action="/preview">
         <label>
             Source directory:
@@ -28,14 +32,20 @@
     {% endif %}
 
     {% if actions is not none %}
-    <h2>Planned actions ({{ actions|length }})</h2>
-    <ul>
-        {% for action in actions %}
-        <li>
-            {{ action.source }} → {{ action.destination }} [{{ action.category.value }}]
-        </li>
-        {% endfor %}
-    </ul>
+    <form method="post" action="/execute">
+        <h2>Planned actions ({{ actions|length }})</h2>
+        <ul>
+            {% for action in actions %}
+            <li>
+                {{ action.source }} → {{ action.destination }} [{{ action.category.value }}]
+                <input type="hidden" name="source" value="{{ action.source }}">
+                <input type="hidden" name="destination" value="{{ action.destination }}">
+                <input type="hidden" name="category" value="{{ action.category.value }}">
+            </li>
+            {% endfor %}
+        </ul>
+        <button type="submit">Confirm & Execute</button>
+    </form>
     {% endif %}
 </body>
 

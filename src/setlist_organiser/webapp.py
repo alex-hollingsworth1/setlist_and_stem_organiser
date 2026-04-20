@@ -4,6 +4,8 @@ from pathlib import Path
 
 from flask import Flask, render_template, request
 
+from setlist_organiser.models import Category, PlannedAction
+from setlist_organiser.organiser import execute_plan
 from setlist_organiser.planner import plan_organisation
 
 app = Flask(__name__)
@@ -15,8 +17,9 @@ def index():
         "index.html",
         actions=None,
         error=None,
-        source_dir="",
-        output_root="",
+        report=None,
+        source_dir="../../AUDIO_FILES_FOR_TESTING", # TEMP: hardcoded local test paths for development only
+        output_root="output", # TEMP: hardcoded local test paths for development only
     )
 
 
@@ -31,6 +34,7 @@ def preview():
             "index.html",
             actions=actions,
             error=None,
+            report=None,
             source_dir=source_dir,
             output_root=output_root,
         )
@@ -39,9 +43,37 @@ def preview():
             "index.html",
             actions=None,
             error=str(exc),
+            report=None,
             source_dir=source_dir,
             output_root=output_root,
         )
+
+
+@app.post("/execute")
+def execute():
+    sources = request.form.getlist("source")
+    destinations = request.form.getlist("destination")
+    categories = request.form.getlist("category")
+
+    actions: list[PlannedAction] = []
+    for source, destination, category in zip(sources, destinations, categories):
+        actions.append(
+            PlannedAction(
+                source=Path(source),
+                destination=Path(destination),
+                category=Category(category),
+            )
+        )
+
+    report = execute_plan(actions, dry_run=False)
+    return render_template(
+        "index.html",
+        report=report,
+        actions=None,
+        error=None,
+        source_dir="",
+        output_root="",
+    )
 
 
 if __name__ == "__main__":
