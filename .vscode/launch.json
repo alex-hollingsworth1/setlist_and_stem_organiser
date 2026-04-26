@@ -1,0 +1,23 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Setlist CLI Debug (Dummy Files)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "setlist_organiser.cli",
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/src",
+        "SETLIST_DEBUG_FLOW": "1"
+      },
+      "args": [
+        "/Users/alexhollingsworth/SOFTWARE_DEVELOPMENT/DUMMY_FILES/FILES",
+        "/Users/alexhollingsworth/SOFTWARE_DEVELOPMENT/DUMMY_FILES/TMP_DEBUG_OUT",
+        "--dry-run"
+      ],
+      "console": "integratedTerminal",
+      "justMyCode": true
+    }
+  ]
+}

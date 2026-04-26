@@ -15,7 +15,7 @@ def test_index_route_renders_form(client):
     assert response.status_code == 200
 
     html = response.get_data(as_text=True)
-    assert "Stem Organiser Preview" in html
+    assert "setlist-organiser" in html
     assert "source_dir" in html
     assert "output_root" in html
 
@@ -77,3 +77,4 @@ def test_execute_route_copies_files_and_shows_report(client, tmp_path: Path):
     assert destination.exists()
     html = response.get_data(as_text=True)
     assert "Successfully copied 1 files." in html
+    assert "Open in Finder" in html

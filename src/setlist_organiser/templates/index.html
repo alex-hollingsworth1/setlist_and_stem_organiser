@@ -3,61 +3,114 @@
 
 <head>
     <meta charset="utf-8" />
-    <title>Setlist Organiser Preview</title>
+    <title>Setlist Organiser</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
 </head>
 
 <body>
-    <h1>Stem Organiser Preview</h1>
+    <div class="app-shell">
+        <header class="app-header">
+            <h1 class="app-title"><span class="app-title-code">setlist-organiser</span></h1>
+            <p class="app-sub">Stem classification · plan preview · batch execute</p>
+        </header>
 
-    {% if report %}
-    <p style="color: green;">Successfully copied {{ report.copied_files }} files.</p>
-    {% endif %}
+        <main class="app-main">
+            {% if report %}
+            <div class="alert alert--success" role="status">
+                Successfully copied {{ report.copied_files }} files.
+            </div>
+            {% if reveal_path %}
+            <div class="success-followup" role="group" aria-label="Output location">
+                <p class="success-followup__path" title="{{ reveal_path }}">{{ reveal_path }}</p>
+                <a class="btn btn--secondary" href="{{ url_for('reveal_in_finder') }}">Open in Finder</a>
+            </div>
+            {% endif %}
+            {% endif %}
 
-    <form method="post" action="/preview">
-        <label>
-            Source directory:
-            <input type="text" name="source_dir" value="{{ source_dir }}" required />
-        </label>
-        <br /><br />
-        <label>
-            Output root:
-            <input type="text" name="output_root" value="{{ output_root }}" required />
-        </label>
-        <br /><br />
-        <button type="submit">Preview plan</button>
-    </form>
+            <section class="panel panel--form" aria-labelledby="form-heading">
+                <h2 class="panel-head" id="form-heading">Paths</h2>
+                <form method="post" action="/preview" class="preview-form">
+                    <div class="form-grid">
+                        <div class="field">
+                            <label class="field-label" for="source_dir">Source directory</label>
+                            <input type="text" id="source_dir" name="source_dir" value="{{ source_dir }}"
+                                required spellcheck="false" autocomplete="off" />
+                        </div>
+                        <div class="field">
+                            <label class="field-label" for="output_root">Output root</label>
+                            <input type="text" id="output_root" name="output_root" value="{{ output_root }}"
+                                required spellcheck="false" autocomplete="off" />
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn--primary">Preview plan</button>
+                    </div>
+                </form>
+            </section>
 
-    {% if error %}
-    <p style="color: red;">{{ error }}</p>
-    {% endif %}
+            {% if error %}
+            <div class="alert alert--error" role="alert">{{ error }}</div>
+            {% endif %}
 
-    {% if actions is not none %}
-    <form method="post" action="/execute">
-        <h2>Planned actions ({{ actions|length }})</h2>
-        <ul>
-            {% for action in actions %}
-            <li {% if action.category.value=="OTHER" %}style="color: darkorange; font-weight: 600;" {% endif %}>
-                {{ action.source }} → {{ action.destination }} [{{ action.category.value }}]
+            {% if actions is not none %}
+            <form method="post" action="/execute" class="execute-block">
+                <section class="panel panel--table" aria-labelledby="results-heading">
+                    <div class="table-toolbar">
+                        <h2 id="results-heading">Planned actions</h2>
+                        <span class="table-count">{{ actions|length }} file(s)</span>
+                    </div>
+                    <div class="data-table-wrap">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Filename</th>
+                                    <th scope="col">Category</th>
+                                    <th scope="col">Destination</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for action in actions %}
+                                <tr>
+                                    <td class="col-filename">
+                                        <input type="hidden" name="source" value="{{ action.source }}">
+                                        <input type="hidden" name="destination" value="{{ action.destination }}">
+                                        {{ action.source.name }}
+                                    </td>
+                                    <td>
+                                        <div class="badge-wrap">
+                                            <span
+                                                class="category-badge category-{{ action.category.value }}">{{ action.category.value }}</span>
+                                            <label class="sr-only" for="cat-{{ loop.index0 }}">Override category for {{
+                                                action.source.name }}</label>
+                                            <select class="category-select" id="cat-{{ loop.index0 }}"
+                                                name="category" title="Override category">
+                                                {% for c in categories %}
+                                                <option value="{{ c.value }}"
+                                                    {% if c.value==action.category.value %}selected{% endif %}>
+                                                    {{ c.value }}
+                                                </option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                    </td>
+                                    <td class="col-dest">{{ action.destination }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
 
-                <input type="hidden" name="source" value="{{ action.source }}">
-                <input type="hidden" name="destination" value="{{ action.destination }}">
-
-                <label>
-                    Category:
-                    <select name="category">
-                        {% for c in categories %}
-                        <option value="{{ c.value }}" {% if c.value==action.category.value %}selected{% endif %}>
-                            {{ c.value }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </label>
-            </li>
-            {% endfor %}
-        </ul>
-        <button type="submit">Confirm & Execute</button>
-    </form>
-    {% endif %}
+                <section class="panel panel--footer" aria-label="Execute batch">
+                    <p class="summary-line">
+                        <strong>{{ actions|length }}</strong> file(s) staged · review categories above, then run copy
+                    </p>
+                    <button type="submit" class="btn btn--execute">Confirm &amp; execute</button>
+                </section>
+            </form>
+            {% endif %}
+        </main>
+    </div>
 </body>
 
 </html>
