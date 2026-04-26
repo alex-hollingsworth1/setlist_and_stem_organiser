@@ -41,6 +41,7 @@ CATEGORY_KEYWORDS: dict[Category, tuple[str, ...]] = {
         "triangle",
         "hit",
         "hits",
+        "cowbell",
     ),
     Category.DRUMS: (
         "drum",
@@ -92,7 +93,9 @@ CATEGORY_KEYWORDS: dict[Category, tuple[str, ...]] = {
         "saw",
         "square",
         "sc",
-        "sidechain"
+        "sidechain",
+        "clav",
+        "clavinet"
     ),
     Category.GTR: (
         "gtr",
@@ -116,6 +119,8 @@ CATEGORY_KEYWORDS: dict[Category, tuple[str, ...]] = {
         "dbl",
         "doubles",
         "lv",
+        "spoken word",
+        "spoken"
     ),
     Category.BVS: (
         "bv",
@@ -147,7 +152,9 @@ CATEGORY_KEYWORDS: dict[Category, tuple[str, ...]] = {
         "noise",
         "white noise",
         "atmos",
-        "atmosphere"
+        "atmosphere",
+        "ambience",
+        "ambiance"
     ),
     Category.CLICK: (
         "click",
@@ -171,6 +178,8 @@ CATEGORY_KEYWORDS: dict[Category, tuple[str, ...]] = {
         "violin",
         "viola",
         "cello",
+        "fiddle",
+        "orchestral",
     ),
     Category.BRASS: (
         "brass",
@@ -187,6 +196,7 @@ CATEGORY_KEYWORDS: dict[Category, tuple[str, ...]] = {
         "clarinet",
         "saxophone",
         "bassoon",
+        "sax",
     ),
     Category.OTHER: (),
 }
