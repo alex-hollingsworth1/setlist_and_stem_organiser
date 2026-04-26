@@ -10,11 +10,42 @@
 <body>
     <div class="app-shell">
         <header class="app-header">
-            <h1 class="app-title"><span class="app-title-code">setlist-organiser</span></h1>
-            <p class="app-sub">Stem classification · plan preview · batch execute</p>
+            <h1 class="app-title"><span class="app-title-code">stem-and-setlist-organiser</span></h1>
+            <p class="app-sub">stem classification · plan preview · batch execute</p>
         </header>
 
         <main class="app-main">
+            <section class="panel panel--form" aria-labelledby="categories-heading">
+                <h2 class="panel-head" id="categories-heading">Categories</h2>
+                <div class="category-palette" role="list" aria-label="Supported category labels">
+                    {% for c in categories %}
+                    <span class="category-badge category-{{ c.value }}" role="listitem">{{ c.value }}</span>
+                    {% endfor %}
+                </div>
+                <hr class="category-palette__rule" />
+                <form method="post" action="{{ url_for('add_keywords') }}" class="add-keywords-form">
+                    <div class="form-grid form-grid--add-keywords">
+                        <div class="field">
+                            <label class="field-label" for="category_name">Category</label>
+                            <select id="category_name" name="category_name" required class="category-select"
+                                title="Category to add keywords to">
+                                {% for c in categories %}
+                                <option value="{{ c.name }}">{{ c.value }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label class="field-label" for="new_keywords">New keywords (space-separated)</label>
+                            <input type="text" id="new_keywords" name="new_keywords" value=""
+                                placeholder="e.g. jangle chorus_tap" spellcheck="false" autocomplete="off" required />
+                        </div>
+                    </div>
+                    <div class="form-actions form-actions--category">
+                        <button type="submit" class="btn btn--primary">Add keyword</button>
+                    </div>
+                </form>
+            </section>
+
             {% if report %}
             <div class="alert alert--success" role="status">
                 Successfully copied {{ report.copied_files }} files.
@@ -33,13 +64,13 @@
                     <div class="form-grid">
                         <div class="field">
                             <label class="field-label" for="source_dir">Source directory</label>
-                            <input type="text" id="source_dir" name="source_dir" value="{{ source_dir }}"
-                                required spellcheck="false" autocomplete="off" />
+                            <input type="text" id="source_dir" name="source_dir" value="{{ source_dir }}" required
+                                spellcheck="false" autocomplete="off" />
                         </div>
                         <div class="field">
                             <label class="field-label" for="output_root">Output root</label>
-                            <input type="text" id="output_root" name="output_root" value="{{ output_root }}"
-                                required spellcheck="false" autocomplete="off" />
+                            <input type="text" id="output_root" name="output_root" value="{{ output_root }}" required
+                                spellcheck="false" autocomplete="off" />
                         </div>
                     </div>
                     <div class="form-actions">
@@ -78,15 +109,15 @@
                                     </td>
                                     <td>
                                         <div class="badge-wrap">
-                                            <span
-                                                class="category-badge category-{{ action.category.value }}">{{ action.category.value }}</span>
-                                            <label class="sr-only" for="cat-{{ loop.index0 }}">Override category for {{
-                                                action.source.name }}</label>
-                                            <select class="category-select" id="cat-{{ loop.index0 }}"
-                                                name="category" title="Override category">
+                                            <span class="category-badge category-{{ action.category.value }}">
+                                                {{ action.category.value }}</span>
+                                            <label class="sr-only" for="cat-{{ loop.index0 }}">Override category for
+                                                {{ action.source.name }}</label>
+                                            <select class="category-select" id="cat-{{ loop.index0 }}" name="category"
+                                                title="Override category">
                                                 {% for c in categories %}
-                                                <option value="{{ c.value }}"
-                                                    {% if c.value==action.category.value %}selected{% endif %}>
+                                                <option value="{{ c.value }}" {% if c.value==action.category.value
+                                                    %}selected{% endif %}>
                                                     {{ c.value }}
                                                 </option>
                                                 {% endfor %}
@@ -103,7 +134,8 @@
 
                 <section class="panel panel--footer" aria-label="Execute batch">
                     <p class="summary-line">
-                        <strong>{{ actions|length }}</strong> file(s) staged · review categories above, then run copy
+                        <strong>{{ actions|length }}</strong> file(s) staged · review categories above, then run
+                        Confirm &amp; execute
                     </p>
                     <button type="submit" class="btn btn--execute">Confirm &amp; execute</button>
                 </section>

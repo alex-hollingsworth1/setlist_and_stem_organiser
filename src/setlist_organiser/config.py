@@ -4,6 +4,19 @@ from pathlib import Path
 from .models import Category
 
 
+def _dedupe_keywords_preserve_order(keywords: tuple[str, ...]) -> tuple[str, ...]:
+    """Drop duplicates (case-insensitive), keep the first occurrence’s spelling."""
+    seen: set[str] = set()
+    out: list[str] = []
+    for w in keywords:
+        key = w.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(w)
+    return tuple(out)
+
+
 def load_keyword_overrides(path: Path) -> dict[Category, tuple[str, ...]]:
     text = path.read_text()
     data = json.loads(text)
@@ -26,6 +39,38 @@ def load_keyword_overrides(path: Path) -> dict[Category, tuple[str, ...]]:
         result[Category(category_name)] = tuple(keywords)
 
     return result
+
+def save_keyword_overrides(path: Path, overrides: dict[Category, tuple[str, ...]]) -> None:
+    kw_dict: dict[str, list[str]] = {}
+    for category, words in overrides.items():
+        kw_dict[str(category)] = list(words)
+    data = {"keywords": kw_dict}
+    path.write_text(json.dumps(data, indent=2))
+
+
+def merge_keywords_into_stored_overrides(
+    path: Path,
+    category: Category,
+    new_tokens: tuple[str, ...],
+) -> None:
+    """
+    Update the JSON overrides file: for ``category``, append new tokens to any
+    already stored for that category, de-duplicated (case-insensitive). Other
+    categories in the file are left unchanged. Matches how
+    :func:`build_effective_keywords` uses the file: file holds only the extra
+    keywords; defaults + overrides are merged at planning time.
+    """
+    if not new_tokens:
+        return
+    if path.is_file():
+        existing = load_keyword_overrides(path)
+    else:
+        existing = {}
+    prior = existing.get(category, ())
+    combined = _dedupe_keywords_preserve_order(prior + new_tokens)
+    existing[category] = combined
+    path.parent.mkdir(parents=True, exist_ok=True)
+    save_keyword_overrides(path, existing)
 
 
 def build_effective_keywords(

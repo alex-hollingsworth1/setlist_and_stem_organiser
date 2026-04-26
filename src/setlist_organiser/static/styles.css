@@ -119,6 +119,15 @@ body {
   margin-bottom: 1.25rem;
 }
 
+.form-grid--add-keywords {
+  grid-template-columns: minmax(9rem, 14rem) 1fr;
+}
+
+.add-keywords-form .category-select {
+  width: 100%;
+  max-width: 100%;
+}
+
 .field {
   display: flex;
   flex-direction: column;
@@ -367,6 +376,42 @@ body {
   flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem;
+}
+
+/* categories panel: full-width row of large chips, separate from table badges */
+.category-palette {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(6.25rem, 1fr));
+  gap: 0.5rem;
+  width: 100%;
+  align-items: stretch;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.category-palette .category-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+  padding: 0.5rem 0.65rem;
+  font-size: 0.78rem;
+  text-align: center;
+  line-height: 1.2;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.category-palette__rule {
+  width: 100%;
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 1.1rem 0 0.85rem;
+}
+
+.form-actions--category {
+  margin-top: 0;
 }
 
 .category-badge {

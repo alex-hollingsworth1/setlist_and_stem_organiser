@@ -18,6 +18,19 @@
       ],
       "console": "integratedTerminal",
       "justMyCode": true
+    },
+    {
+      "name": "Flask: setlist_organiser.webapp",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "setlist_organiser.webapp",
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/src",
+        "SETLIST_NO_RELOAD": "1"
+      },
+      "console": "integratedTerminal",
+      "justMyCode": true
     }
   ]
 }
