@@ -95,7 +95,7 @@ CATEGORY_KEYWORDS: dict[Category, tuple[str, ...]] = {
         "sc",
         "sidechain",
         "clav",
-        "clavinet"
+        "clavinet",
     ),
     Category.GTR: (
         "gtr",
@@ -120,7 +120,7 @@ CATEGORY_KEYWORDS: dict[Category, tuple[str, ...]] = {
         "doubles",
         "lv",
         "spoken word",
-        "spoken"
+        "spoken",
     ),
     Category.BVS: (
         "bv",
@@ -154,7 +154,7 @@ CATEGORY_KEYWORDS: dict[Category, tuple[str, ...]] = {
         "atmos",
         "atmosphere",
         "ambience",
-        "ambiance"
+        "ambiance",
     ),
     Category.CLICK: (
         "click",
@@ -234,9 +234,7 @@ def _tokenize(normalized_name: str) -> set[str]:
     return set(normalized_name.split(" "))
 
 
-def _keyword_matches(
-    keyword: str, normalized_name: str, tokens: set[str]
-) -> bool:
+def _keyword_matches(keyword: str, normalized_name: str, tokens: set[str]) -> bool:
     normalized_keyword = _normalize_name(keyword)
     if not normalized_keyword:
         return False
