@@ -41,8 +41,8 @@ def index():
         error=None,
         report=None,
         reveal_path=None,
-        source_dir="../../AUDIO_FILES_FOR_TESTING",  # TEMP: hardcoded local test paths for development only
-        output_root="output",  # TEMP: hardcoded local test paths for development only
+        source_dir="",
+        output_root="",
         categories=Category,
     )
 
