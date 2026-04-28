@@ -57,6 +57,17 @@
             </div>
             {% endif %}
             {% endif %}
+            {% if ableton_message %}
+            <div class="alert alert--success" role="status">
+                {{ ableton_message }}
+            </div>
+            {% if ableton_path %}
+            <div class="success-followup" role="group" aria-label="Ableton session location">
+                <p class="success-followup__path" title="{{ ableton_path }}">{{ ableton_path }}</p>
+                <a class="btn btn--secondary" href="{{ url_for('open_in_ableton') }}">Open in Ableton</a>
+            </div>
+            {% endif %}
+            {% endif %}
 
             <section class="panel panel--form" aria-labelledby="form-heading">
                 <h2 class="panel-head" id="form-heading">Paths</h2>
@@ -137,7 +148,12 @@
                         <strong>{{ actions|length }}</strong> file(s) staged · review categories above, then run
                         Confirm &amp; execute
                     </p>
-                    <button type="submit" class="btn btn--execute">Confirm &amp; execute</button>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn--execute">Confirm &amp; execute</button>
+                        <button type="submit" formaction="/build-and-open-session" class="btn btn--secondary">
+                            Build Ableton Session
+                        </button>
+                    </div>
                 </section>
             </form>
             {% endif %}

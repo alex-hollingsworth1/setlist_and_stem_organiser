@@ -12,6 +12,7 @@ from setlist_organiser.classifier import CATEGORY_KEYWORDS
 from setlist_organiser.models import Category, PlannedAction
 from setlist_organiser.organiser import execute_plan, output_folder_for_reveal
 from setlist_organiser.planner import plan_organisation
+from setlist_organiser.session_builder import build_session, parse_template
 from setlist_organiser.config import (
     build_effective_keywords,
     load_keyword_overrides,
@@ -35,14 +36,18 @@ def keyword_overrides_path() -> Path:
 
 @app.get("/")
 def index():
+    ableton_message = session.pop("ableton_build_message", None)
+    ableton_path = session.get("reveal-ableton-session")
     return render_template(
         "index.html",
         actions=None,
         error=None,
         report=None,
         reveal_path=None,
-        source_dir="../../AUDIO_FILES_FOR_TESTING",  # TEMP: hardcoded local test paths for development only
-        output_root="output",  # TEMP: hardcoded local test paths for development only
+        ableton_message=ableton_message,
+        ableton_path=ableton_path,
+        source_dir="",
+        output_root="",
         categories=Category,
     )
 
@@ -74,6 +79,8 @@ def preview():
                 error=f"Invalid keyword overrides file: {exc}",
                 report=None,
                 reveal_path=None,
+                ableton_message=None,
+                ableton_path=None,
                 source_dir=source_dir,
                 output_root=output_root,
                 categories=Category,
@@ -87,6 +94,8 @@ def preview():
             error=None,
             report=None,
             reveal_path=None,
+            ableton_message=None,
+            ableton_path=None,
             source_dir=source_dir,
             output_root=output_root,
             categories=Category,
@@ -98,6 +107,8 @@ def preview():
             error=str(exc),
             report=None,
             reveal_path=None,
+            ableton_message=None,
+            ableton_path=None,
             source_dir=source_dir,
             output_root=output_root,
             categories=Category,
@@ -115,6 +126,23 @@ def reveal_in_finder():
     if sys.platform == "darwin":
         subprocess.run(
             ["open", str(folder)],
+            check=False,
+            capture_output=True,
+        )
+    return redirect(url_for("index"))
+
+
+@app.get("/open-ableton-session")
+def open_in_ableton():
+    path_str = session.pop("reveal-ableton-session", None)
+    if not path_str:
+        return redirect(url_for("index"))
+    als_file = Path(path_str)
+    if not als_file.is_file():
+        return redirect(url_for("index"))
+    if sys.platform == "darwin":
+        subprocess.run(
+            ["open", str(als_file)],
             check=False,
             capture_output=True,
         )
@@ -151,10 +179,57 @@ def execute():
         actions=None,
         error=None,
         reveal_path=reveal_path,
+        ableton_message=None,
+        ableton_path=None,
         source_dir="",
         output_root="",
         categories=Category,
     )
+
+
+@app.post("/build-and-open-session")
+def build_and_open_session():
+    sources = request.form.getlist("source")
+    destinations = request.form.getlist("destination")
+    categories = request.form.getlist("category")
+
+    actions: list[PlannedAction] = []
+    for source, destination, category in zip(sources, destinations, categories):
+        actions.append(
+            PlannedAction(
+                source=Path(source),
+                destination=Path(destination),
+                category=Category(category),
+            )
+        )
+
+    if not actions:
+        session["ableton_build_message"] = (
+            "No planned actions available to build a session."
+        )
+        return redirect(url_for("index"))
+
+    source_root = Path(os.path.commonpath([str(a.source) for a in actions]))
+    if source_root.is_file():
+        source_root = source_root.parent
+    output_path = source_root / "ABLETON" / "session.als"
+
+    project_root = Path(__file__).resolve().parent.parent.parent
+    template_path = project_root / "AH_BLANK Project" / "AH_BLANK.als"
+    if not template_path.is_file():
+        session["ableton_build_message"] = f"Template not found: {template_path}"
+        return redirect(url_for("index"))
+
+    parsed_template = parse_template(template_path)
+    build_session(parsed_template, actions, output_path)
+
+    if sys.platform == "darwin":
+        subprocess.run(["open", str(output_path)], check=False, capture_output=True)
+
+    session["open-ableton-session"] = str(output_path)
+    session["ableton_build_message"] = f"Ableton session generated: {output_path}"
+    return redirect(url_for("index"))
+
 
 @app.post("/add-keywords")
 def add_keywords():
@@ -170,7 +245,6 @@ def add_keywords():
         keyword_overrides_path(), Category[category_name], split_keywords
     )
     return redirect(url_for("index"))
-
 
 
 if __name__ == "__main__":

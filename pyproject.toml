@@ -9,7 +9,8 @@ description = "CLI tool for musical directors to classify and organise audio ste
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "flask>=3.0.0"
+    "flask>=3.0.0",
+    "lxml>=5.0.0",
 ]
 authors = [
     {name = "Alex Hollingsworth", email = "alex@hsoundworks.co.uk"}
