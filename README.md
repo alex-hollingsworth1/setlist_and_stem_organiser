@@ -4,7 +4,7 @@
 [![Python](https://img.shields.io/pypi/pyversions/setlist-organiser)](https://pypi.org/project/setlist-organiser/)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-CLI tool for classifying audio stem filenames into categories and organising them into folder structure via copy or move operations.
+CLI and web UI tool for classifying audio stem filenames into categories and organising them into folder structure via copy or move operations. Includes optional Ableton session creation.
 
 ## What it does
 
