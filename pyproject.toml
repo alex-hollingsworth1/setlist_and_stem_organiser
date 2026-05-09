@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "setlist-organiser"
-version = "0.1.0"
-description = "CLI tool for musical directors to classify and organise audio stem exports by instrument category."
+version = "0.2.1"
+description = "A Python CLI and web UI tool for organising audio stem exports into instrument categories, designed for producers, mixers, and musical directors. Includes optional Ableton session creation."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [

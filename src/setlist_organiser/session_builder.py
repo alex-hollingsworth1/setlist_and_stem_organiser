@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections import defaultdict
 from copy import deepcopy
 import gzip
 import io
@@ -65,6 +66,13 @@ def _first_audio_track(root: etree._Element, path: Path) -> etree._Element:
     )
 
 
+def _first_group_track(root: etree._Element) -> etree._Element:
+    for el in root.iter():
+        if etree.QName(el).localname == "GroupTrack":
+            return el
+    raise ValueError("Template XML does not contain a <GroupTrack> element.")
+
+
 def parse_template(path: Path) -> ParsedAbletonTemplate:
     """
     Read an Ableton Live session file and extract the first audio track as a template.
@@ -125,12 +133,47 @@ def _iter_sub_id_values(track: etree._Element, start_id: int) -> int:
 
 
 def _clone_track(
-    template_track: etree._Element, category: Category, track_id: int, start_id: int
+    template_track: etree._Element,
+    category: Category,
+    track_id: int,
+    start_id: int,
+    track_group_id: int,
+    name: str,
 ) -> tuple[etree._Element, int]:
     """
-    Deep copy a template AudioTrack and apply ID, name, colour, and sub-IDs.
+    Deep copy a template AudioTrack and apply ID, name, colour, group, and sub-IDs.
     """
     cloned = deepcopy(template_track)
+    cloned.set("Id", str(track_id))
+
+    name_set = _set_first_value_attr(cloned, "UserName", name)
+    effective_set = _set_first_value_attr(cloned, "EffectiveName", name)
+    if not name_set or not effective_set:
+        raise ValueError(
+            "Template AudioTrack is missing UserName/EffectiveName Value nodes."
+        )
+
+    if not _set_first_value_attr(cloned, "TrackGroupId", str(track_group_id)):
+        raise ValueError("Template AudioTrack is missing a TrackGroupId Value node.")
+
+    colour_node = _first_descendant_by_localname(cloned, "Color")
+    if colour_node is None:
+        raise ValueError("Template AudioTrack is missing a Color node.")
+    colour_node.set("Value", str(CATEGORY_COLOURS[category]))
+    next_available_id = _iter_sub_id_values(cloned, start_id=start_id)
+    return cloned, next_available_id
+
+
+def _clone_folder_track(
+    template_group_track: etree._Element,
+    category: Category,
+    track_id: int,
+    start_id: int,
+) -> tuple[etree._Element, int]:
+    """
+    Deep copy a template GroupTrack and apply ID, name, colour, and sub-IDs.
+    """
+    cloned = deepcopy(template_group_track)
     cloned.set("Id", str(track_id))
 
     name_value = category.value
@@ -138,12 +181,12 @@ def _clone_track(
     effective_set = _set_first_value_attr(cloned, "EffectiveName", name_value)
     if not name_set or not effective_set:
         raise ValueError(
-            "Template AudioTrack is missing UserName/EffectiveName Value nodes."
+            "Template GroupTrack is missing UserName/EffectiveName Value nodes."
         )
 
     colour_node = _first_descendant_by_localname(cloned, "Color")
     if colour_node is None:
-        raise ValueError("Template AudioTrack is missing a Color node.")
+        raise ValueError("Template GroupTrack is missing a Color node.")
     colour_node.set("Value", str(CATEGORY_COLOURS[category]))
     next_available_id = _iter_sub_id_values(cloned, start_id=start_id)
     return cloned, next_available_id
@@ -155,7 +198,11 @@ def build_session(
     """
     Build a new session XML by replacing template tracks with category tracks.
     """
-    categories = {action.category for action in actions}
+    actions_by_category: dict[Category, list[PlannedAction]] = defaultdict(list)
+    for action in actions:
+        actions_by_category[action.category].append(action)
+
+    categories = set(actions_by_category)
     ordered_categories = [c for c in CATEGORY_PRIORITY if c in categories]
     remaining = sorted(categories - set(ordered_categories), key=lambda c: c.value)
     ordered_categories.extend(remaining)
@@ -164,21 +211,36 @@ def build_session(
     if tracks_container is None:
         raise ValueError("Template XML does not contain a <Tracks> element.")
 
+    template_group_track = _first_group_track(template.root)
+    current_max_id = max(_iter_id_values(template.root), default=0)
+
     for child in list(tracks_container):
-        if etree.QName(child).localname == "AudioTrack":
+        if etree.QName(child).localname in {"AudioTrack", "GroupTrack"}:
             tracks_container.remove(child)
 
-    current_max_id = max(_iter_id_values(template.root), default=0)
     for category in ordered_categories:
-        track_id = current_max_id + 1
-        cloned_track, next_available_id = _clone_track(
-            template.template_track,
+        group_track_id = current_max_id + 1
+        cloned_group, next_available_id = _clone_folder_track(
+            template_group_track,
             category,
-            track_id=track_id,
-            start_id=track_id,
+            track_id=group_track_id,
+            start_id=group_track_id,
         )
-        tracks_container.append(cloned_track)
+        tracks_container.append(cloned_group)
         current_max_id = next_available_id - 1
+
+        for action in actions_by_category[category]:
+            audio_track_id = current_max_id + 1
+            cloned_audio, next_available_id = _clone_track(
+                template.template_track,
+                category,
+                track_id=audio_track_id,
+                start_id=audio_track_id,
+                track_group_id=group_track_id,
+                name=action.destination.stem,
+            )
+            tracks_container.append(cloned_audio)
+            current_max_id = next_available_id - 1
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
 

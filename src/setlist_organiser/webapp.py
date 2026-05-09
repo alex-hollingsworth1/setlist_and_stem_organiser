@@ -215,7 +215,7 @@ def build_and_open_session():
     output_path = source_root / "ABLETON" / "session.als"
 
     project_root = Path(__file__).resolve().parent.parent.parent
-    template_path = project_root / "AH_BLANK Project" / "AH_BLANK.als"
+    template_path = project_root / "AH_BLANK Project" / "AH_BLANK - 2.als"
     if not template_path.is_file():
         session["ableton_build_message"] = f"Template not found: {template_path}"
         return redirect(url_for("index"))
