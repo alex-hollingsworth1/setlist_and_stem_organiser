@@ -14,6 +14,7 @@ from .planner import plan_organisation
 from .config import load_keyword_overrides, build_effective_keywords
 from .reviewer import review_actions
 
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
@@ -44,10 +45,8 @@ def build_parser() -> argparse.ArgumentParser:
         help="Only print the summary line (no per-file listing).",
     )
     parser.add_argument(
-        "--summary-only",
-        action="store_true",
-        help="Print category counts"
-        )
+        "--summary-only", action="store_true", help="Print category counts"
+    )
     parser.add_argument(
         "--config",
         type=Path,
@@ -55,14 +54,10 @@ def build_parser() -> argparse.ArgumentParser:
         help="Path to JSON config file with extra keyword mappings.",
     )
     parser.add_argument(
-        "--show-other",
-        action="store_true",
-        help="Print files in OTHER category"
+        "--show-other", action="store_true", help="Print files in OTHER category"
     )
     parser.add_argument(
-        "--recursive",
-        action="store_true",
-        help="Search through nested folders"
+        "--recursive", action="store_true", help="Search through nested folders"
     )
     parser.add_argument(
         "--review",
@@ -72,12 +67,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--move",
         action="store_true",
-        help="Move stems to folder as opposed to copying them."
+        help="Move stems to folder as opposed to copying them.",
     )
     parser.add_argument(
         "--numbered",
         action="store_true",
-        help="Add a numbered tag to each of the stem directories"
+        help="Add a numbered tag to each of the stem directories",
     )
 
     return parser
@@ -87,6 +82,7 @@ def _print_actions(actions: list[PlannedAction]) -> None:
     for action in actions:
         line = f"{action.source.name} -> [{action.category.value}]"
         print(line)
+
 
 def _print_category_summary(actions: list[PlannedAction]) -> None:
     counts = {}
@@ -98,6 +94,7 @@ def _print_category_summary(actions: list[PlannedAction]) -> None:
     for category, count in counts.items():
         print(f"{category.value}: {count}")
 
+
 def show_other_files(actions: list[PlannedAction]) -> int:
     total = 0
     for action in actions:
@@ -105,9 +102,9 @@ def show_other_files(actions: list[PlannedAction]) -> int:
             line = f"{action.source.name}"
             print(line)
             total += 1
-    
+
     return total
-    
+
 
 def main(argv: list[str] | None = None) -> int:
     """
@@ -134,7 +131,9 @@ def main(argv: list[str] | None = None) -> int:
     if config_path:
         try:
             config_keywords = load_keyword_overrides(config_path)
-            keywords = build_effective_keywords(defaults=CATEGORY_KEYWORDS, overrides=config_keywords)
+            keywords = build_effective_keywords(
+                defaults=CATEGORY_KEYWORDS, overrides=config_keywords
+            )
         except FileNotFoundError:
             print(f"Config file not found: {config_path}", file=sys.stderr)
             return 1
@@ -146,7 +145,13 @@ def main(argv: list[str] | None = None) -> int:
             return 1
 
     try:
-        actions = plan_organisation(source_dir, output_root, keywords=keywords, recursive=recursive, numbered=numbered)
+        actions = plan_organisation(
+            source_dir,
+            output_root,
+            keywords=keywords,
+            recursive=recursive,
+            numbered=numbered,
+        )
     except NotADirectoryError as exc:
         print(exc, file=sys.stderr)
         return 1
@@ -177,9 +182,9 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     if not quiet and not show_other:
-            mode = "Dry-run" if report.dry_run else ("Moved" if move else "Copied")
-            print(f"{mode}: {report.copied_files} file(s).")
-        
+        mode = "Dry-run" if report.dry_run else ("Moved" if move else "Copied")
+        print(f"{mode}: {report.copied_files} file(s).")
+
     return 0
 
 

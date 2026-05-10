@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections import defaultdict
 from copy import deepcopy
 import gzip
+import wave
 import io
 from dataclasses import dataclass
 from pathlib import Path
@@ -73,6 +74,13 @@ def _first_group_track(root: etree._Element) -> etree._Element:
     raise ValueError("Template XML does not contain a <GroupTrack> element.")
 
 
+def _first_audio_clip(track: etree._Element) -> etree._Element:
+    for el in track.iter():
+        if etree.QName(el).localname == "AudioClip":
+            return el
+    raise ValueError("AudioTrack XML does not contain an <AudioClip> element.")
+
+
 def parse_template(path: Path) -> ParsedAbletonTemplate:
     """
     Read an Ableton Live session file and extract the first audio track as a template.
@@ -132,6 +140,35 @@ def _iter_sub_id_values(track: etree._Element, start_id: int) -> int:
     return next_id
 
 
+def _clear_take_lanes_content(track: etree._Element) -> None:
+    """
+    Empty ``<TakeLanes><TakeLanes>`` (remove all ``<TakeLane>`` children) and fold lanes.
+
+    Leaves the main clip slot untouched; only nested take-lane clip data is removed.
+    """
+    outer_take_lanes = None
+    for child in track:
+        if etree.QName(child).localname == "TakeLanes":
+            outer_take_lanes = child
+            break
+    if outer_take_lanes is None:
+        raise ValueError("AudioTrack is missing a <TakeLanes> element.")
+
+    inner_take_lanes = None
+    for child in outer_take_lanes:
+        if etree.QName(child).localname == "TakeLanes":
+            inner_take_lanes = child
+            break
+    if inner_take_lanes is None:
+        raise ValueError("AudioTrack <TakeLanes> is missing inner <TakeLanes>.")
+
+    for lane in list(inner_take_lanes):
+        inner_take_lanes.remove(lane)
+
+    if not _set_first_value_attr(outer_take_lanes, "AreTakeLanesFolded", "true"):
+        raise ValueError("AudioTrack <TakeLanes> is missing AreTakeLanesFolded.")
+
+
 def _clone_track(
     template_track: etree._Element,
     category: Category,
@@ -139,6 +176,7 @@ def _clone_track(
     start_id: int,
     track_group_id: int,
     name: str,
+    file_path: Path | None = None,
 ) -> tuple[etree._Element, int]:
     """
     Deep copy a template AudioTrack and apply ID, name, colour, group, and sub-IDs.
@@ -153,6 +191,11 @@ def _clone_track(
             "Template AudioTrack is missing UserName/EffectiveName Value nodes."
         )
 
+    if not _set_first_value_attr(cloned, "MemorizedFirstClipName", name):
+        raise ValueError(
+            "Template AudioTrack is missing MemorizedFirstClipName Value node."
+        )
+
     if not _set_first_value_attr(cloned, "TrackGroupId", str(track_group_id)):
         raise ValueError("Template AudioTrack is missing a TrackGroupId Value node.")
 
@@ -161,6 +204,44 @@ def _clone_track(
         raise ValueError("Template AudioTrack is missing a Color node.")
     colour_node.set("Value", str(CATEGORY_COLOURS[category]))
     next_available_id = _iter_sub_id_values(cloned, start_id=start_id)
+
+    if file_path is not None:
+        template_clips = [
+            el
+            for el in template_track.iter()
+            if etree.QName(el).localname == "AudioClip"
+        ]
+        cloned_clips = [
+            el for el in cloned.iter() if etree.QName(el).localname == "AudioClip"
+        ]
+        if not template_clips:
+            raise ValueError("Template AudioTrack does not contain any <AudioClip>.")
+        if len(template_clips) != len(cloned_clips):
+            raise ValueError(
+                "Cloned track AudioClip count does not match template ("
+                f"{len(cloned_clips)} vs {len(template_clips)})."
+            )
+        parent_map = {child: parent for parent in cloned.iter() for child in parent}
+        clip_next_id = next_available_id
+        for template_clip, existing_clip in zip(
+            template_clips, cloned_clips, strict=True
+        ):
+            cloned_clip, clip_next_id = _clone_audio_clip(
+                template_clip=template_clip,
+                file_path=file_path,
+                clip_name=name,
+                colour=CATEGORY_COLOURS[category],
+                start_id=clip_next_id - 1,
+                template_root=template_track.getroottree().getroot(),
+            )
+            clip_parent = parent_map.get(existing_clip)
+            if clip_parent is None:
+                raise ValueError("Template AudioTrack AudioClip has no parent node.")
+            clip_parent.replace(existing_clip, cloned_clip)
+        next_available_id = clip_next_id
+
+    _clear_take_lanes_content(cloned)
+
     return cloned, next_available_id
 
 
@@ -188,6 +269,155 @@ def _clone_folder_track(
     if colour_node is None:
         raise ValueError("Template GroupTrack is missing a Color node.")
     colour_node.set("Value", str(CATEGORY_COLOURS[category]))
+    next_available_id = _iter_sub_id_values(cloned, start_id=start_id)
+    return cloned, next_available_id
+
+
+def _clone_audio_clip(
+    template_clip: etree._Element,
+    file_path: Path,
+    clip_name: str,
+    colour: int,
+    start_id: int,
+    template_root: etree._Element,
+) -> tuple[etree._Element, int]:
+    """
+    Deep copy a template AudioClip and apply file path, clip name, and sub-IDs.
+    """
+    cloned = deepcopy(template_clip)
+    _set_first_value_attr(cloned, "SampleVolume", "1")
+
+    try:
+        with wave.open(str(file_path), "rb") as wf:
+            frame_count = wf.getnframes()
+            sample_rate = wf.getframerate()
+    except wave.Error:
+        frame_count = None
+        sample_rate = None
+
+    file_size = file_path.stat().st_size
+
+    clip_seconds: float | None = None
+    clip_beats: float | None = None
+    if frame_count is not None and sample_rate is not None:
+        main_track = _first_descendant_by_localname(template_root, "MainTrack")
+        tempo = 120.0
+        if main_track is not None:
+            tempo_el = _first_descendant_by_localname(main_track, "Tempo")
+            if tempo_el is not None:
+                manual_el = _first_descendant_by_localname(tempo_el, "Manual")
+                if manual_el is not None and manual_el.get("Value") is not None:
+                    try:
+                        tempo = float(manual_el.get("Value", "120"))
+                    except ValueError:
+                        tempo = 120.0
+        clip_seconds = frame_count / float(sample_rate)
+        clip_beats = clip_seconds * (tempo / 60.0)
+        beats_str = str(clip_beats)
+    else:
+        beats_str = None
+
+    file_path_value = file_path.as_posix()
+    file_refs: list[etree._Element] = []
+    for sample_ref in cloned.iter():
+        if etree.QName(sample_ref).localname != "SampleRef":
+            continue
+        for child in sample_ref:
+            local = etree.QName(child).localname
+            if local == "FileRef":
+                file_refs.append(child)
+            elif local == "DefaultDuration":
+                child.set(
+                    "Value",
+                    str(frame_count) if frame_count is not None else "0",
+                )
+            elif local == "DefaultSampleRate":
+                child.set(
+                    "Value",
+                    str(sample_rate) if sample_rate is not None else "0",
+                )
+
+    if not file_refs:
+        raise ValueError(
+            "Template AudioClip is missing a FileRef as a direct child of SampleRef."
+        )
+
+    path_updated = False
+    for file_ref_node in file_refs:
+        path_node = _first_descendant_by_localname(file_ref_node, "Path")
+        if path_node is not None:
+            path_node.set("Value", file_path_value)
+            path_updated = True
+
+        relative_path_node = _first_descendant_by_localname(
+            file_ref_node, "RelativePath"
+        )
+        if relative_path_node is not None:
+            relative_path_node.set("Value", file_path_value)
+
+        file_name_node = _first_descendant_by_localname(file_ref_node, "Name")
+        if file_name_node is not None:
+            file_name_node.set("Value", file_path.name)
+
+        original_size = _first_descendant_by_localname(
+            file_ref_node, "OriginalFileSize"
+        )
+        if original_size is not None:
+            original_size.set("Value", str(file_size))
+        original_crc = _first_descendant_by_localname(file_ref_node, "OriginalCrc")
+        if original_crc is not None:
+            original_crc.set("Value", "0")
+
+    if not path_updated:
+        raise ValueError("Template AudioClip FileRef is missing a Path Value node.")
+
+    name_node = next(
+        (
+            child
+            for child in cloned
+            if etree.QName(child).localname == "Name" and child.get("Value") is not None
+        ),
+        None,
+    )
+    if name_node is None:
+        raise ValueError("Template AudioClip is missing a Name Value node.")
+    name_node.set("Value", clip_name)
+    _set_first_value_attr(cloned, "Color", str(colour))
+
+    if beats_str is not None:
+        current_end = _first_descendant_by_localname(cloned, "CurrentEnd")
+        if current_end is not None:
+            current_end.set("Value", beats_str)
+        loop_el = _first_descendant_by_localname(cloned, "Loop")
+        if loop_el is not None:
+            for tag in ("LoopEnd", "OutMarker", "HiddenLoopEnd"):
+                node = _first_descendant_by_localname(loop_el, tag)
+                if node is not None:
+                    node.set("Value", beats_str)
+
+        warp_markers = _first_descendant_by_localname(cloned, "WarpMarkers")
+        if warp_markers is not None:
+            for child in list(warp_markers):
+                warp_markers.remove(child)
+            etree.SubElement(
+                warp_markers,
+                "WarpMarker",
+                attrib={
+                    "Id": "0",
+                    "SecTime": "0",
+                    "BeatTime": "0",
+                },
+            )
+            etree.SubElement(
+                warp_markers,
+                "WarpMarker",
+                attrib={
+                    "Id": "1",
+                    "SecTime": str(clip_seconds),
+                    "BeatTime": str(clip_beats),
+                },
+            )
+
     next_available_id = _iter_sub_id_values(cloned, start_id=start_id)
     return cloned, next_available_id
 
@@ -238,6 +468,7 @@ def build_session(
                 start_id=audio_track_id,
                 track_group_id=group_track_id,
                 name=action.destination.stem,
+                file_path=action.source,
             )
             tracks_container.append(cloned_audio)
             current_max_id = next_available_id - 1
