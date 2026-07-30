@@ -1,0 +1,130 @@
+<title>Lesson 1 — Classify → Plan → Execute</title>
+<link rel="stylesheet" href="../assets/style.css">
+
+<div class="kicker">Lesson 1 · Core Pipeline</div>
+<h1>Classify → Plan → Execute</h1>
+<p class="sidenote">Mission: understand this codebase well enough to work on it faster and independently. See <a href="../MISSION.md">MISSION.md</a>.</p>
+
+<p>
+Almost everything the CLI and the web UI do funnels through one small pipeline.
+Once this shape is in your head, any bug report or feature request becomes
+"which stage of this does it touch?" instead of a cold search through the repo.
+</p>
+
+<div class="pipeline">
+  <div class="step">source_dir (folder of stems)</div>
+  <span class="arrow">→</span>
+  <div class="step"><code>plan_organisation()</code><br><span class="source-link">planner.py</span></div>
+  <span class="arrow">→</span>
+  <div class="step">list[<code>PlannedAction</code>]</div>
+  <span class="arrow">→</span>
+  <div class="step"><code>review_actions()</code><br><span class="source-link">reviewer.py (optional)</span></div>
+  <span class="arrow">→</span>
+  <div class="step"><code>execute_plan()</code><br><span class="source-link">organiser.py</span></div>
+  <span class="arrow">→</span>
+  <div class="step"><code>RunReport</code></div>
+</div>
+
+<h2>The four shapes of data</h2>
+<p>
+Everything above is glue around four small, frozen dataclasses defined once in
+<code>models.py</code> and passed between modules unchanged:
+</p>
+<ul>
+  <li><code>Category</code> — an enum of the 15 output buckets (<code>DRUMS</code>, <code>BASS</code>, <code>VOX</code>, … <code>OTHER</code>).</li>
+  <li><code>ClassifiedFile</code> — one source path plus the <code>Category</code> it matched (and which keyword did it).</li>
+  <li><code>PlannedAction</code> — a source path, a destination path, and a category. This is what <code>planner.py</code> hands to everything downstream.</li>
+  <li><code>RunReport</code> — the summary (<code>total_files</code>, <code>copied_files</code>, <code>dry_run</code>) handed back up to the caller once a run finishes.</li>
+</ul>
+<p class="sidenote">Notice classification (<code>ClassifiedFile</code>) and planning (<code>PlannedAction</code>) are separate types. <code>planner.py</code> calls the classifier internally and folds the result straight into a <code>PlannedAction</code> — <code>ClassifiedFile</code> on its own is only really used inside <code>classifier.py</code> and its tests.</p>
+
+<h2>Walking the actual call order</h2>
+<p>
+<code>cli.py:main()</code> is the clearest place to see the wiring, in order:
+</p>
+<pre><code>args = parser.parse_args(argv)
+
+if config_path:                       # config.py
+    overrides = load_keyword_overrides(config_path)
+    keywords = build_effective_keywords(defaults=CATEGORY_KEYWORDS, overrides=overrides)
+
+actions = plan_organisation(          # planner.py — classifies every file, returns PlannedAction[]
+    source_dir, output_root, keywords=keywords, recursive=recursive, numbered=numbered
+)
+
+# ...print previews (--summary-only / --show-other) here...
+
+if review:
+    actions = review_actions(actions) # reviewer.py — only touches Category.OTHER items
+
+report = execute_plan(actions, dry_run=dry_run, move=move)   # organiser.py
+</code></pre>
+<p>
+Two things worth internalising: <strong>classification happens once</strong>, inside
+<code>plan_organisation</code> — there's no separate "classify" pass you'll find yourself
+hunting for. And <strong>review only ever sees <code>OTHER</code></strong> — anything
+already matched to a real category skips <code>reviewer.py</code> entirely and goes
+straight through.
+</p>
+
+<div class="callout">
+<strong>Config detour:</strong> <code>--config</code> doesn't replace the built-in keyword
+table in <code>classifier.py</code> — <code>build_effective_keywords</code> (in
+<code>config.py</code>) merges the JSON file's keywords <em>on top of</em>
+<code>CATEGORY_KEYWORDS</code>, per category. The file only ever needs to contain the
+extra words you want to add.
+</div>
+
+<h2>Check your recall</h2>
+
+<div class="quiz" data-quiz data-right-msg="Right — plan_organisation is the one function that turns a folder into a list of PlannedAction." data-wrong-msg="Not quite. Re-read “Walking the actual call order” above.">
+  <p class="quiz-question">Which function produces the list of <code>PlannedAction</code> objects everything downstream operates on?</p>
+  <div class="quiz-options">
+    <button class="quiz-option">execute_plan</button>
+    <button class="quiz-option" data-correct>plan_organisation</button>
+    <button class="quiz-option">review_actions</button>
+    <button class="quiz-option">classify_name</button>
+  </div>
+  <p class="quiz-feedback"></p>
+</div>
+
+<div class="quiz" data-quiz data-right-msg="Right — reviewer.py only ever sees files still sitting in OTHER." data-wrong-msg="Not quite. Only one module filters by Category.OTHER before copying.">
+  <p class="quiz-question">A file lands in <code>Category.OTHER</code>. Which module decides whether it gets reassigned before copying?</p>
+  <div class="quiz-options">
+    <button class="quiz-option">classifier.py</button>
+    <button class="quiz-option">config.py</button>
+    <button class="quiz-option" data-correct>reviewer.py</button>
+    <button class="quiz-option">organiser.py</button>
+  </div>
+  <p class="quiz-feedback"></p>
+</div>
+
+<div class="quiz" data-quiz data-right-msg="Right — RunReport is the only dataclass built after files actually move (or would move)." data-wrong-msg="Not quite. Check which dataclass in models.py holds copied_files and dry_run.">
+  <p class="quiz-question">Which dataclass carries the outcome of a run (counts, dry-run flag) back to the CLI for printing?</p>
+  <div class="quiz-options">
+    <button class="quiz-option">PlannedAction</button>
+    <button class="quiz-option">ClassifiedFile</button>
+    <button class="quiz-option">Category</button>
+    <button class="quiz-option" data-correct>RunReport</button>
+  </div>
+  <p class="quiz-feedback"></p>
+</div>
+
+<h2>Primary source</h2>
+<p>
+There's no external doc for this — the source <em>is</em> the primary source. Read, in this
+order: <code>src/setlist_organiser/models.py</code>, <code>planner.py</code>, then
+<code>cli.py:main()</code>. Cross-check any claim above against
+<code>tests/test_planner.py</code> and <code>tests/test_cli.py</code>, which pin down the
+exact behaviour (e.g. what happens on filename collisions, what <code>--numbered</code>
+does to folder names).
+</p>
+
+<p class="followup">Something above unclear, or doesn't match what you're seeing in the code? Ask your agent — it's your teacher for this workspace, not just a lesson generator.</p>
+
+<div class="nav-links">
+  <span>Lesson 1 of ?</span>
+  <span>Next: the web UI and Ableton session builder (not yet written)</span>
+</div>
+
+<script src="../assets/quiz.js"></script>
