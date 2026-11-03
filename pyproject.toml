@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "setlist-organiser"
-version = "0.2.1"
+version = "0.2.2"
 description = "A Python CLI and web UI tool for organising audio stem exports into instrument categories, designed for producers, mixers, and musical directors. Includes optional Ableton session creation."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -29,12 +29,18 @@ classifiers = [
     "Topic :: Multimedia :: Sound/Audio",
 ]
 
+[project.optional-dependencies]
+dev = ["pytest"]
+
 [project.urls]
 Homepage = "https://github.com/alex-hollingsworth1/setlist_and_stem_organiser"
 Issues = "https://github.com/alex-hollingsworth1/setlist_and_stem_organiser/issues"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+setlist_organiser = ["templates/*", "static/*"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
