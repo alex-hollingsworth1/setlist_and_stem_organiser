@@ -22,6 +22,8 @@ from setlist_organiser.config import (
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-insecure")
 
+SESSION_KEY_ABLETON_PATH = "open-ableton-session"
+
 
 def keyword_overrides_path() -> Path:
     """
@@ -37,7 +39,7 @@ def keyword_overrides_path() -> Path:
 @app.get("/")
 def index():
     ableton_message = session.pop("ableton_build_message", None)
-    ableton_path = session.get("reveal-ableton-session")
+    ableton_path = session.get(SESSION_KEY_ABLETON_PATH)
     return render_template(
         "index.html",
         actions=None,
@@ -134,7 +136,7 @@ def reveal_in_finder():
 
 @app.get("/open-ableton-session")
 def open_in_ableton():
-    path_str = session.pop("reveal-ableton-session", None)
+    path_str = session.pop(SESSION_KEY_ABLETON_PATH, None)
     if not path_str:
         return redirect(url_for("index"))
     als_file = Path(path_str)
@@ -226,7 +228,7 @@ def build_and_open_session():
     if sys.platform == "darwin":
         subprocess.run(["open", str(output_path)], check=False, capture_output=True)
 
-    session["open-ableton-session"] = str(output_path)
+    session[SESSION_KEY_ABLETON_PATH] = str(output_path)
     session["ableton_build_message"] = f"Ableton session generated: {output_path}"
     return redirect(url_for("index"))
 
