@@ -78,3 +78,50 @@ def test_execute_route_copies_files_and_shows_report(client, tmp_path: Path):
     html = response.get_data(as_text=True)
     assert "Successfully copied 1 files." in html
     assert "Open in Finder" in html
+
+
+def test_build_and_open_session_stores_path_in_session(client, tmp_path: Path):
+    """Test that build_and_open_session stores the session path under the correct key."""
+    import wave
+    from setlist_organiser.webapp import SESSION_KEY_ABLETON_PATH
+    
+    source = tmp_path / "in"
+    source.mkdir()
+    
+    kick_wav = source / "kick.wav"
+    with wave.open(str(kick_wav), "wb") as wf:
+        wf.setnchannels(1)
+        wf.setsampwidth(2)
+        wf.setframerate(44100)
+        wf.writeframes(b"\x00\x00" * 4410)
+    
+    with client.session_transaction() as sess:
+        sess[SESSION_KEY_ABLETON_PATH] = None
+    
+    response = client.post(
+        "/build-and-open-session",
+        data={
+            "source": [str(kick_wav)],
+            "destination": [str(tmp_path / "out" / "DRUMS" / "kick.wav")],
+            "category": ["DRUMS"],
+        },
+        follow_redirects=False,
+    )
+    
+    assert response.status_code == 302
+    
+    with client.session_transaction() as sess:
+        stored_path = sess.get(SESSION_KEY_ABLETON_PATH)
+        assert stored_path is not None
+        assert stored_path.endswith("session.als")
+    
+    response = client.get("/", follow_redirects=True)
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    assert "Ableton session generated" in html
+    
+    response = client.get("/open-ableton-session", follow_redirects=False)
+    assert response.status_code == 302
+    
+    with client.session_transaction() as sess:
+        assert sess.get(SESSION_KEY_ABLETON_PATH) is None
