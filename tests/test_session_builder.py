@@ -1,4 +1,5 @@
 from pathlib import Path
+import wave
 
 from lxml import etree
 
@@ -14,25 +15,51 @@ def _localname(element: etree._Element) -> str:
     return etree.QName(element).localname
 
 
+def _create_wav_fixture(path: Path, duration_seconds: float = 0.1) -> None:
+    """Create a minimal valid WAV file for testing."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    sample_rate = 44100
+    n_channels = 1
+    sample_width = 2  # 16-bit
+    n_frames = int(sample_rate * duration_seconds)
+    
+    with wave.open(str(path), "wb") as wf:
+        wf.setnchannels(n_channels)
+        wf.setsampwidth(sample_width)
+        wf.setframerate(sample_rate)
+        wf.writeframes(b"\x00\x00" * n_frames)
+
+
 def test_build_session_groups_audio_tracks_under_group_tracks(tmp_path: Path) -> None:
+    source_dir = tmp_path / "sources"
+    kick_wav = source_dir / "kick.wav"
+    snare_wav = source_dir / "snare.wav"
+    bass1_wav = source_dir / "bass1.wav"
+    bass2_wav = source_dir / "bass2.wav"
+    
+    _create_wav_fixture(kick_wav)
+    _create_wav_fixture(snare_wav)
+    _create_wav_fixture(bass1_wav)
+    _create_wav_fixture(bass2_wav)
+    
     actions = [
         PlannedAction(
-            source=Path("/in/kick.wav"),
+            source=kick_wav,
             destination=tmp_path / "DRUMS" / "kick.wav",
             category=Category.DRUMS,
         ),
         PlannedAction(
-            source=Path("/in/snare.wav"),
+            source=snare_wav,
             destination=tmp_path / "DRUMS" / "snare.wav",
             category=Category.DRUMS,
         ),
         PlannedAction(
-            source=Path("/in/bass1.wav"),
+            source=bass1_wav,
             destination=tmp_path / "BASS" / "bass1.wav",
             category=Category.BASS,
         ),
         PlannedAction(
-            source=Path("/in/bass2.wav"),
+            source=bass2_wav,
             destination=tmp_path / "BASS" / "bass2.wav",
             category=Category.BASS,
         ),
@@ -93,14 +120,21 @@ def test_build_session_groups_audio_tracks_under_group_tracks(tmp_path: Path) ->
 def test_build_session_assigns_unique_track_ids_and_updates_next_pointee(
     tmp_path: Path,
 ) -> None:
+    source_dir = tmp_path / "sources"
+    kick_wav = source_dir / "kick.wav"
+    bass1_wav = source_dir / "bass1.wav"
+    
+    _create_wav_fixture(kick_wav)
+    _create_wav_fixture(bass1_wav)
+    
     actions = [
         PlannedAction(
-            source=Path("/in/kick.wav"),
+            source=kick_wav,
             destination=tmp_path / "DRUMS" / "kick.wav",
             category=Category.DRUMS,
         ),
         PlannedAction(
-            source=Path("/in/bass1.wav"),
+            source=bass1_wav,
             destination=tmp_path / "BASS" / "bass1.wav",
             category=Category.BASS,
         ),
@@ -134,19 +168,28 @@ def test_build_session_assigns_unique_track_ids_and_updates_next_pointee(
 
 
 def test_build_session_keeps_children_adjacent_to_their_group(tmp_path: Path) -> None:
+    source_dir = tmp_path / "sources"
+    kick_wav = source_dir / "kick.wav"
+    snare_wav = source_dir / "snare.wav"
+    bass1_wav = source_dir / "bass1.wav"
+    
+    _create_wav_fixture(kick_wav)
+    _create_wav_fixture(snare_wav)
+    _create_wav_fixture(bass1_wav)
+    
     actions = [
         PlannedAction(
-            source=Path("/in/kick.wav"),
+            source=kick_wav,
             destination=tmp_path / "DRUMS" / "kick.wav",
             category=Category.DRUMS,
         ),
         PlannedAction(
-            source=Path("/in/snare.wav"),
+            source=snare_wav,
             destination=tmp_path / "DRUMS" / "snare.wav",
             category=Category.DRUMS,
         ),
         PlannedAction(
-            source=Path("/in/bass1.wav"),
+            source=bass1_wav,
             destination=tmp_path / "BASS" / "bass1.wav",
             category=Category.BASS,
         ),
