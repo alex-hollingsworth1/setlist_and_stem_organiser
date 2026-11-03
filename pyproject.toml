@@ -40,7 +40,7 @@ Issues = "https://github.com/alex-hollingsworth1/setlist_and_stem_organiser/issu
 where = ["src"]
 
 [tool.setuptools.package-data]
-setlist_organiser = ["templates/*", "static/*"]
+setlist_organiser = ["templates/*", "static/*", "resources/*"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
