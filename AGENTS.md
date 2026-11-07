@@ -81,16 +81,18 @@ Template override: `SETLIST_ORGANISER_ABLETON_TEMPLATE=/path/to/file.als`.
    surface, either mirror it on the other or document the intentional gap
    in the PR. Current known drift: web preview lacks recursive / numbered /
    move / dry-run. Ableton session build: CLI `--build-session`, web button,
-   and Python API.
+   and Python API. Tempo flags (`--tempo` / `--detect-tempo`) are CLI-only.
 4. **`session_builder.py` ↔ packaged `.als` are coupled.** Change both, and
    keep/extend XML structure tests in `tests/test_session_builder.py`.
 5. **Do not expose the Flask app.** It accepts arbitrary filesystem paths and
    uses a insecure default `SECRET_KEY` for local use. Treat as desktop-only.
 6. **macOS-only:** Finder reveal and `open` for Ableton no-op elsewhere —
    fine; do not invent cross-platform GUI open unless asked.
-7. **Keep deps light by default.** Heavy audio ML (Essentia, Librosa, etc.)
-   belongs behind optional extras and only after a keyword eval baseline
-   exists. Open issues #2 / #3 are not free-for-alls.
+7. **Keep deps light by default.** `librosa` is currently a **main**
+   dependency (tempo detection; may move behind an extra later). Essentia
+   and other heavy audio ML still belong behind optional extras and only
+   after a keyword eval baseline exists. Open issues #2 / #3 are not
+   free-for-alls.
 8. **Prefer `make` / `python3 -m`.** Do not require a pre-existing `.venv`.
 
 ## Good agent ticket shapes (orchestration drills)
@@ -101,6 +103,7 @@ Size work so a single agent can finish and prove it with `make test`.
 | --- | --- |
 | Classifier golden set | Fixture of stem names → expected `Category`; suite fails on regressions for `hit_the_road` / `double_espresso` style cases |
 | CLI `--build-session` | Done on CLI (`--build-session SESSION.als`); keep tests green when touching it |
+| Session tempo | `--tempo BPM` / `--detect-tempo` write MainTrack tempo; clips stay unwarped |
 | Reviewer + `--numbered` | Reassign OTHER under `05_DRUMS/`-style paths without breaking dest layout |
 | Surface parity | Web gains dry-run or recursive to match CLI; tests for both |
 | Lint gate | `ruff` (and optionally `mypy`) in CI + `make lint` |

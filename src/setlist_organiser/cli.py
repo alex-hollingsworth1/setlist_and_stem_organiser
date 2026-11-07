@@ -13,7 +13,12 @@ from .organiser import execute_plan
 from .planner import plan_organisation
 from .config import load_keyword_overrides, build_effective_keywords
 from .reviewer import review_actions
-from .session_builder import build_session, parse_template
+from .session_builder import (
+    build_session,
+    parse_template,
+    read_main_track_tempo,
+)
+from .tempo import estimate_tempo
 from .templates import get_ableton_template_path
 
 
@@ -88,6 +93,25 @@ def build_parser() -> argparse.ArgumentParser:
             "Skipped when --dry-run is set."
         ),
     )
+    parser.add_argument(
+        "--tempo",
+        type=float,
+        default=None,
+        metavar="BPM",
+        help=(
+            "Set the Ableton session tempo (MainTrack) when using --build-session. "
+            "Wins over --detect-tempo."
+        ),
+    )
+    parser.add_argument(
+        "--detect-tempo",
+        action="store_true",
+        help=(
+            "Estimate tempo from stems (prefers CLICK/DRUMS/PERC) and write it "
+            "into the session when confidence is high enough. Requires "
+            "--build-session. Ignored when --tempo is set."
+        ),
+    )
 
     return parser
 
@@ -141,6 +165,18 @@ def main(argv: list[str] | None = None) -> int:
     move: bool = args.move
     numbered: bool = args.numbered
     build_session_path: Path | None = args.build_session
+    tempo_bpm: float | None = args.tempo
+    detect_tempo: bool = args.detect_tempo
+
+    if (tempo_bpm is not None or detect_tempo) and build_session_path is None:
+        print(
+            "--tempo / --detect-tempo require --build-session.",
+            file=sys.stderr,
+        )
+        return 1
+    if tempo_bpm is not None and tempo_bpm <= 0:
+        print("--tempo must be a positive BPM value.", file=sys.stderr)
+        return 1
 
     keywords = None
     if config_path:
@@ -204,22 +240,54 @@ def main(argv: list[str] | None = None) -> int:
         if dry_run:
             if not quiet:
                 print(f"Dry-run: would build Ableton session at {build_session_path}")
+                if tempo_bpm is not None:
+                    print(f"Dry-run: would set session tempo to {tempo_bpm:g} BPM")
+                elif detect_tempo:
+                    print("Dry-run: would detect session tempo from stems")
         elif not actions_to_execute:
             print("No planned actions available to build a session.", file=sys.stderr)
             return 1
         else:
+            session_tempo = tempo_bpm
             try:
                 with get_ableton_template_path() as template_path:
                     if not Path(template_path).is_file():
                         print(f"Template not found: {template_path}", file=sys.stderr)
                         return 1
                     parsed = parse_template(Path(template_path))
-                    build_session(parsed, actions_to_execute, build_session_path)
+                    if session_tempo is None and detect_tempo:
+                        reference = read_main_track_tempo(parsed.root)
+                        estimate = estimate_tempo(
+                            actions_to_execute,
+                            reference_bpm=reference,
+                        )
+                        if estimate is None:
+                            if not quiet:
+                                print(
+                                    "Tempo detection: no confident estimate; "
+                                    "keeping template tempo."
+                                )
+                        else:
+                            session_tempo = estimate.bpm
+                            if not quiet:
+                                print(
+                                    f"Tempo detection: {estimate.bpm:g} BPM "
+                                    f"(confidence {estimate.confidence:.2f}; "
+                                    f"from {estimate.source})"
+                                )
+                    build_session(
+                        parsed,
+                        actions_to_execute,
+                        build_session_path,
+                        tempo_bpm=session_tempo,
+                    )
             except (OSError, ValueError, FileNotFoundError) as exc:
                 print(exc, file=sys.stderr)
                 return 1
             if not quiet:
                 print(f"Ableton session written: {build_session_path}")
+                if session_tempo is not None:
+                    print(f"Session tempo set to {session_tempo:g} BPM")
 
     return 0
 

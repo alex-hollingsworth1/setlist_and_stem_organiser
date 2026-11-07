@@ -232,7 +232,6 @@ def _clone_track(
                 clip_name=name,
                 colour=CATEGORY_COLOURS[category],
                 start_id=clip_next_id - 1,
-                template_root=template_track.getroottree().getroot(),
             )
             clip_parent = parent_map.get(existing_clip)
             if clip_parent is None:
@@ -279,13 +278,15 @@ def _clone_audio_clip(
     clip_name: str,
     colour: int,
     start_id: int,
-    template_root: etree._Element,
 ) -> tuple[etree._Element, int]:
     """
     Deep copy a template AudioClip and apply file path, clip name, and sub-IDs.
+
+    Clips are left unwarped so session tempo does not stretch playback.
     """
     cloned = deepcopy(template_clip)
     _set_first_value_attr(cloned, "SampleVolume", "1")
+    _set_first_value_attr(cloned, "IsWarped", "false")
 
     try:
         with wave.open(str(file_path), "rb") as wf:
@@ -297,25 +298,10 @@ def _clone_audio_clip(
 
     file_size = file_path.stat().st_size
 
+    # Unwarped clips use absolute time (seconds), not beat time.
     clip_seconds: float | None = None
-    clip_beats: float | None = None
     if frame_count is not None and sample_rate is not None:
-        main_track = _first_descendant_by_localname(template_root, "MainTrack")
-        tempo = 120.0
-        if main_track is not None:
-            tempo_el = _first_descendant_by_localname(main_track, "Tempo")
-            if tempo_el is not None:
-                manual_el = _first_descendant_by_localname(tempo_el, "Manual")
-                if manual_el is not None and manual_el.get("Value") is not None:
-                    try:
-                        tempo = float(manual_el.get("Value", "120"))
-                    except ValueError:
-                        tempo = 120.0
         clip_seconds = frame_count / float(sample_rate)
-        clip_beats = clip_seconds * (tempo / 60.0)
-        beats_str = str(clip_beats)
-    else:
-        beats_str = None
 
     file_path_value = file_path.as_posix()
     file_refs: list[etree._Element] = []
@@ -384,50 +370,76 @@ def _clone_audio_clip(
     name_node.set("Value", clip_name)
     _set_first_value_attr(cloned, "Color", str(colour))
 
-    if beats_str is not None:
+    if clip_seconds is not None:
+        seconds_str = str(clip_seconds)
         current_end = _first_descendant_by_localname(cloned, "CurrentEnd")
         if current_end is not None:
-            current_end.set("Value", beats_str)
+            current_end.set("Value", seconds_str)
         loop_el = _first_descendant_by_localname(cloned, "Loop")
         if loop_el is not None:
             for tag in ("LoopEnd", "OutMarker", "HiddenLoopEnd"):
                 node = _first_descendant_by_localname(loop_el, tag)
                 if node is not None:
-                    node.set("Value", beats_str)
+                    node.set("Value", seconds_str)
 
-        warp_markers = _first_descendant_by_localname(cloned, "WarpMarkers")
-        if warp_markers is not None:
-            for child in list(warp_markers):
-                warp_markers.remove(child)
-            etree.SubElement(
-                warp_markers,
-                "WarpMarker",
-                attrib={
-                    "Id": "0",
-                    "SecTime": "0",
-                    "BeatTime": "0",
-                },
-            )
-            etree.SubElement(
-                warp_markers,
-                "WarpMarker",
-                attrib={
-                    "Id": "1",
-                    "SecTime": str(clip_seconds),
-                    "BeatTime": str(clip_beats),
-                },
-            )
+    # Drop any template/tempo warp map so Live does not stretch the sample.
+    for container_name in ("WarpMarkers", "SavedWarpMarkersForStretched"):
+        container = _first_descendant_by_localname(cloned, container_name)
+        if container is not None:
+            for child in list(container):
+                container.remove(child)
 
     next_available_id = _iter_sub_id_values(cloned, start_id=start_id)
     return cloned, next_available_id
 
 
+def read_main_track_tempo(root: etree._Element) -> float | None:
+    """Return MainTrack Tempo Manual value, or None if missing/invalid."""
+    main_track = _first_descendant_by_localname(root, "MainTrack")
+    if main_track is None:
+        return None
+    tempo_el = _first_descendant_by_localname(main_track, "Tempo")
+    if tempo_el is None:
+        return None
+    manual_el = _first_descendant_by_localname(tempo_el, "Manual")
+    if manual_el is None or manual_el.get("Value") is None:
+        return None
+    try:
+        return float(manual_el.get("Value", ""))
+    except ValueError:
+        return None
+
+
+def set_main_track_tempo(root: etree._Element, bpm: float) -> None:
+    """Write ``bpm`` into MainTrack Tempo Manual. Raises if the node is missing."""
+    main_track = _first_descendant_by_localname(root, "MainTrack")
+    if main_track is None:
+        raise ValueError("Template XML does not contain a <MainTrack> element.")
+    tempo_el = _first_descendant_by_localname(main_track, "Tempo")
+    if tempo_el is None:
+        raise ValueError("Template MainTrack is missing a Tempo node.")
+    manual_el = _first_descendant_by_localname(tempo_el, "Manual")
+    if manual_el is None:
+        raise ValueError("Template Tempo is missing a Manual Value node.")
+    manual_el.set("Value", str(bpm))
+
+
 def build_session(
-    template: ParsedAbletonTemplate, actions: list[PlannedAction], output_path: Path
+    template: ParsedAbletonTemplate,
+    actions: list[PlannedAction],
+    output_path: Path,
+    *,
+    tempo_bpm: float | None = None,
 ) -> None:
     """
     Build a new session XML by replacing template tracks with category tracks.
+
+    When ``tempo_bpm`` is set, write it to MainTrack Tempo Manual. Clips stay
+    unwarped, so this only affects the session grid / cue tempo.
     """
+    if tempo_bpm is not None:
+        set_main_track_tempo(template.root, tempo_bpm)
+
     actions_by_category: dict[Category, list[PlannedAction]] = defaultdict(list)
     for action in actions:
         actions_by_category[action.category].append(action)

@@ -1,10 +1,13 @@
 from pathlib import Path
 import wave
+from unittest.mock import patch
 
 import pytest
 from lxml import etree
 
 from setlist_organiser.cli import build_parser, main
+from setlist_organiser.session_builder import read_main_track_tempo
+from setlist_organiser.tempo import TempoEstimate
 
 
 def _write_wav(path: Path, duration_seconds: float = 0.05) -> None:
@@ -27,6 +30,9 @@ def test_build_parser_accepts_required_args() -> None:
     assert args.dry_run is False
     assert args.numbered is False
     assert args.build_session is None
+    assert args.tempo is None
+    assert args.detect_tempo is False
+
 
 def test_build_parser_accepts_optional_flags() -> None:
     parser = build_parser()
@@ -38,12 +44,17 @@ def test_build_parser_accepts_optional_flags() -> None:
             "--numbered",
             "--build-session",
             "out/session.als",
+            "--tempo",
+            "128",
+            "--detect-tempo",
         ]
     )
     
     assert args.dry_run is True
     assert args.numbered is True
     assert args.build_session == Path("out/session.als")
+    assert args.tempo == 128.0
+    assert args.detect_tempo is True
 
 def test_build_parser_accepts_config_flag(tmp_path: Path) -> None:
     config_file = tmp_path / "test_config.json"
@@ -138,3 +149,62 @@ def test_main_build_session_skipped_on_dry_run(tmp_path: Path) -> None:
     assert result == 0
     assert not session_path.exists()
     assert not (output / "DRUMS" / "kick.wav").exists()
+
+
+def test_main_tempo_requires_build_session(tmp_path: Path) -> None:
+    source = tmp_path / "in"
+    source.mkdir()
+    _write_wav(source / "kick.wav")
+    output = tmp_path / "out"
+
+    result = main([str(source), str(output), "--tempo", "120"])
+    assert result == 1
+
+
+def test_main_build_session_applies_explicit_tempo(tmp_path: Path) -> None:
+    source = tmp_path / "in"
+    source.mkdir()
+    _write_wav(source / "kick.wav")
+    output = tmp_path / "out"
+    session_path = tmp_path / "session.als"
+
+    result = main(
+        [
+            str(source),
+            str(output),
+            "--build-session",
+            str(session_path),
+            "--tempo",
+            "128",
+            "--quiet",
+        ]
+    )
+
+    assert result == 0
+    tree = etree.parse(str(session_path))
+    assert read_main_track_tempo(tree.getroot()) == 128.0
+
+
+def test_main_detect_tempo_applies_estimate(tmp_path: Path) -> None:
+    source = tmp_path / "in"
+    source.mkdir()
+    _write_wav(source / "kick.wav")
+    output = tmp_path / "out"
+    session_path = tmp_path / "session.als"
+    estimate = TempoEstimate(bpm=110.0, confidence=0.8, source="kick.wav")
+
+    with patch("setlist_organiser.cli.estimate_tempo", return_value=estimate):
+        result = main(
+            [
+                str(source),
+                str(output),
+                "--build-session",
+                str(session_path),
+                "--detect-tempo",
+                "--quiet",
+            ]
+        )
+
+    assert result == 0
+    tree = etree.parse(str(session_path))
+    assert read_main_track_tempo(tree.getroot()) == 110.0

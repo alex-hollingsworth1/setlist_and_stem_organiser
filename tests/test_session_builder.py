@@ -4,7 +4,11 @@ import wave
 from lxml import etree
 
 from setlist_organiser.models import Category, PlannedAction
-from setlist_organiser.session_builder import build_session, parse_template
+from setlist_organiser.session_builder import (
+    build_session,
+    parse_template,
+    read_main_track_tempo,
+)
 from setlist_organiser.templates import get_ableton_template_path
 
 
@@ -212,3 +216,59 @@ def test_build_session_keeps_children_adjacent_to_their_group(tmp_path: Path) ->
                 el for el in child.iter() if _localname(el) == "TrackGroupId"
             )
             assert int(track_group_id_node.get("Value")) == current_group_id
+
+
+def test_build_session_sets_main_track_tempo(tmp_path: Path) -> None:
+    source = tmp_path / "sources" / "kick.wav"
+    _create_wav_fixture(source)
+    actions = [
+        PlannedAction(
+            source=source,
+            destination=tmp_path / "DRUMS" / "kick.wav",
+            category=Category.DRUMS,
+        ),
+    ]
+
+    with get_ableton_template_path() as template_path:
+        template = parse_template(template_path)
+        output_path = tmp_path / "session.als"
+        build_session(template, actions, output_path, tempo_bpm=128.0)
+
+    tree = etree.parse(str(output_path))
+    assert read_main_track_tempo(tree.getroot()) == 128.0
+
+
+def test_build_session_leaves_audio_clips_unwarped(tmp_path: Path) -> None:
+    duration_seconds = 0.25
+    source = tmp_path / "sources" / "kick.wav"
+    _create_wav_fixture(source, duration_seconds=duration_seconds)
+    actions = [
+        PlannedAction(
+            source=source,
+            destination=tmp_path / "DRUMS" / "kick.wav",
+            category=Category.DRUMS,
+        ),
+    ]
+
+    with get_ableton_template_path() as template_path:
+        template = parse_template(template_path)
+        output_path = tmp_path / "session.als"
+        build_session(template, actions, output_path)
+
+    tree = etree.parse(str(output_path))
+    clips = [el for el in tree.iter() if _localname(el) == "AudioClip"]
+    assert clips
+
+    for clip in clips:
+        is_warped = next(el for el in clip if _localname(el) == "IsWarped")
+        assert is_warped.get("Value") == "false"
+
+        current_end = next(el for el in clip if _localname(el) == "CurrentEnd")
+        assert float(current_end.get("Value")) == duration_seconds
+
+        warp_markers = next(
+            (el for el in clip if _localname(el) == "WarpMarkers"),
+            None,
+        )
+        if warp_markers is not None:
+            assert list(warp_markers) == []

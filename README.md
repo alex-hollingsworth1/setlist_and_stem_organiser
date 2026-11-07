@@ -12,6 +12,7 @@ A Python tool for preparing live and session audio stems. It classifies stem fil
 
 - Python `>=3.11`
 - `lxml` (for session generation)
+- `librosa` (for optional `--detect-tempo`)
 
 ## Install
 
@@ -38,8 +39,8 @@ Given an existing Live project as a template, the tool builds a complete session
 Ableton `.als` files are gzip-wrapped XML. The builder reads the template, reuses its first audio track and group track as blueprints, and for each stem:
 
 - Rewrites the clip's sample reference to point at the real source file
-- Reads the `.wav` header to set clip duration and fit it to the project tempo
-- Regenerates warp markers so the clip sits correctly on the timeline
+- Reads the `.wav` header to set clip duration in seconds
+- Leaves clips **unwarped** so session tempo does not stretch playback
 - Assigns unique element IDs so every new track and clip stays valid
 
 Tracks are emitted in category order, so the session mirrors the folder layout.
@@ -50,7 +51,16 @@ From the CLI (organises stems and writes a session):
 setlist-organiser SOURCE_DIR OUTPUT_ROOT --build-session OUTPUT_ROOT/session.als
 ```
 
-`--build-session` is skipped under `--dry-run`. Override the packaged template with `SETLIST_ORGANISER_ABLETON_TEMPLATE=/path/to/template.als`.
+Set or detect session grid tempo (clips stay unwarped either way):
+
+```bash
+setlist-organiser SOURCE_DIR OUTPUT_ROOT --build-session OUT.als --tempo 128
+setlist-organiser SOURCE_DIR OUTPUT_ROOT --build-session OUT.als --detect-tempo
+```
+
+`--tempo` wins over `--detect-tempo`. Detection prefers CLICK / DRUMS / PERC stems and keeps the template tempo when confidence is low. `--build-session` is skipped under `--dry-run`. Override the packaged template with `SETLIST_ORGANISER_ABLETON_TEMPLATE=/path/to/template.als`.
+
+Web UI does not yet expose tempo flags (CLI-only for now).
 
 Or from Python:
 
@@ -61,10 +71,10 @@ from setlist_organiser.session_builder import parse_template, build_session
 
 actions = plan_organisation(Path("stems/"), Path("output/"))
 template = parse_template(Path("template.als"))
-build_session(template, actions, Path("output/session.als"))
+build_session(template, actions, Path("output/session.als"), tempo_bpm=128.0)
 ```
 
-The template `.als` needs at least one audio track and one group track. Stems are best supplied as `.wav`, since duration and tempo-fitting read WAV headers.
+The template `.als` needs at least one audio track and one group track. Stems are best supplied as `.wav`.
 
 ## Development
 
