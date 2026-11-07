@@ -80,7 +80,8 @@ Template override: `SETLIST_ORGANISER_ABLETON_TEMPLATE=/path/to/file.als`.
 3. **CLI and web are one product.** If you add a flag/behaviour to one
    surface, either mirror it on the other or document the intentional gap
    in the PR. Current known drift: web preview lacks recursive / numbered /
-   move / dry-run; Ableton session build is web + Python API only (not CLI).
+   move / dry-run. Ableton session build: CLI `--build-session`, web button,
+   and Python API.
 4. **`session_builder.py` ↔ packaged `.als` are coupled.** Change both, and
    keep/extend XML structure tests in `tests/test_session_builder.py`.
 5. **Do not expose the Flask app.** It accepts arbitrary filesystem paths and
@@ -99,7 +100,7 @@ Size work so a single agent can finish and prove it with `make test`.
 | Ticket shape | Example acceptance |
 | --- | --- |
 | Classifier golden set | Fixture of stem names → expected `Category`; suite fails on regressions for `hit_the_road` / `double_espresso` style cases |
-| CLI `--build-session` | Headless organise + write `.als` without Flask; test covers exit code + file exists |
+| CLI `--build-session` | Done on CLI (`--build-session SESSION.als`); keep tests green when touching it |
 | Reviewer + `--numbered` | Reassign OTHER under `05_DRUMS/`-style paths without breaking dest layout |
 | Surface parity | Web gains dry-run or recursive to match CLI; tests for both |
 | Lint gate | `ruff` (and optionally `mypy`) in CI + `make lint` |

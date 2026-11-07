@@ -44,7 +44,15 @@ Ableton `.als` files are gzip-wrapped XML. The builder reads the template, reuse
 
 Tracks are emitted in category order, so the session mirrors the folder layout.
 
-Session generation runs from Python:
+From the CLI (organises stems and writes a session):
+
+```bash
+setlist-organiser SOURCE_DIR OUTPUT_ROOT --build-session OUTPUT_ROOT/session.als
+```
+
+`--build-session` is skipped under `--dry-run`. Override the packaged template with `SETLIST_ORGANISER_ABLETON_TEMPLATE=/path/to/template.als`.
+
+Or from Python:
 
 ```python
 from pathlib import Path
