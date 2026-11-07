@@ -1,0 +1,264 @@
+{
+  "description": "Golden stem-name corpus for classify_name. Expected categories are product intent, not current behaviour. Do not expand CATEGORY_KEYWORDS without updating this file.",
+  "schema": {
+    "name": "filename including extension",
+    "category": "Category enum value",
+    "tags": "clear | trap | priority | policy | gap | stretch",
+    "note": "optional rationale, especially for policy rows",
+    "enforce": "optional bool; false = documented intent only, skipped by the golden test"
+  },
+  "cases": [
+    {
+      "name": "01_Kick_In.wav",
+      "category": "DRUMS",
+      "tags": ["clear"]
+    },
+    {
+      "name": "Snare_Top.wav",
+      "category": "DRUMS",
+      "tags": ["clear"]
+    },
+    {
+      "name": "OH_L.wav",
+      "category": "DRUMS",
+      "tags": ["clear"],
+      "note": "oh is a short token but a legitimate stem abbreviation"
+    },
+    {
+      "name": "HH_closed.wav",
+      "category": "DRUMS",
+      "tags": ["clear"],
+      "note": "hh is a short token but a legitimate stem abbreviation"
+    },
+    {
+      "name": "Perc_Shaker.wav",
+      "category": "PERC",
+      "tags": ["clear"]
+    },
+    {
+      "name": "Tambourine.wav",
+      "category": "PERC",
+      "tags": ["clear"]
+    },
+    {
+      "name": "Bass_DI.wav",
+      "category": "BASS",
+      "tags": ["clear"]
+    },
+    {
+      "name": "Sub_Bass.wav",
+      "category": "SUB",
+      "tags": ["clear"]
+    },
+    {
+      "name": "Keys_Rhodes.wav",
+      "category": "KEYS",
+      "tags": ["clear"]
+    },
+    {
+      "name": "Synth_Pad.wav",
+      "category": "KEYS",
+      "tags": ["clear"]
+    },
+    {
+      "name": "Sidechain_Pad.wav",
+      "category": "KEYS",
+      "tags": ["clear"]
+    },
+    {
+      "name": "Acoustic_Gtr.wav",
+      "category": "GTR",
+      "tags": ["clear"]
+    },
+    {
+      "name": "Electric_Guitar.wav",
+      "category": "GTR",
+      "tags": ["clear"]
+    },
+    {
+      "name": "LV_Verse.wav",
+      "category": "VOX",
+      "tags": ["clear"],
+      "note": "lv as a standalone stem token should stay VOX"
+    },
+    {
+      "name": "Lead_Vox.wav",
+      "category": "VOX",
+      "tags": ["clear"]
+    },
+    {
+      "name": "Vox_Double.wav",
+      "category": "VOX",
+      "tags": ["clear"]
+    },
+    {
+      "name": "BVS_Stack.wav",
+      "category": "BVS",
+      "tags": ["clear"]
+    },
+    {
+      "name": "Harmony_Vox.wav",
+      "category": "BVS",
+      "tags": ["clear"]
+    },
+    {
+      "name": "FX_Riser.wav",
+      "category": "FX",
+      "tags": ["clear"]
+    },
+    {
+      "name": "Click_Track.wav",
+      "category": "CLICK",
+      "tags": ["clear"]
+    },
+    {
+      "name": "Count_In.wav",
+      "category": "CUES",
+      "tags": ["clear"]
+    },
+    {
+      "name": "Strings_Ensemble.wav",
+      "category": "STRINGS",
+      "tags": ["clear"]
+    },
+    {
+      "name": "Brass_Section.wav",
+      "category": "BRASS",
+      "tags": ["clear"]
+    },
+    {
+      "name": "Sax_Solo.wav",
+      "category": "WOODWIND",
+      "tags": ["clear"]
+    },
+    {
+      "name": "Master_Print.wav",
+      "category": "OTHER",
+      "tags": ["clear"]
+    },
+
+    {
+      "name": "EGTR_Lead.wav",
+      "category": "GTR",
+      "tags": ["gap"],
+      "note": "Common abbreviation; currently OTHER — keyword coverage hole, not a false positive"
+    },
+
+    {
+      "name": "intro_vox_fx.wav",
+      "category": "VOX",
+      "tags": ["priority"]
+    },
+    {
+      "name": "section_drums_perc.wav",
+      "category": "DRUMS",
+      "tags": ["priority"]
+    },
+
+    {
+      "name": "hit_the_road.wav",
+      "category": "OTHER",
+      "tags": ["trap"],
+      "enforce": false,
+      "note": "Documented false positive — 'hit'/'hits' stay for real perc stems; token matcher cannot distinguish song titles yet"
+    },
+    {
+      "name": "double_espresso.wav",
+      "category": "OTHER",
+      "tags": ["trap"],
+      "enforce": false,
+      "note": "Documented false positive — 'double'/'dbl'/'doubles' stay for real vox doubles"
+    },
+    {
+      "name": "rim_of_the_world.wav",
+      "category": "OTHER",
+      "tags": ["trap"],
+      "enforce": false,
+      "note": "Documented false positive — 'rim' stays for real drum stems"
+    },
+    {
+      "name": "sc_bus.wav",
+      "category": "OTHER",
+      "tags": ["trap"],
+      "enforce": false,
+      "note": "Documented false positive — 'sc' stays for sidechain abbreviations"
+    },
+    {
+      "name": "pad_thai.wav",
+      "category": "OTHER",
+      "tags": ["trap"],
+      "enforce": false,
+      "note": "Documented false positive — 'pad' stays for real keys stems"
+    },
+    {
+      "name": "key_change.wav",
+      "category": "OTHER",
+      "tags": ["trap"],
+      "enforce": false,
+      "note": "Documented false positive — 'key' stays for real keys stems"
+    },
+
+    {
+      "name": "lv_room.wav",
+      "category": "OTHER",
+      "tags": ["policy", "trap"],
+      "enforce": false,
+      "note": "Decided OTHER (room/ambience), but 'lv' must stay for LV_Verse — token matcher cannot distinguish yet. Documented, not enforced."
+    },
+    {
+      "name": "808_kick.wav",
+      "category": "SUB",
+      "tags": ["policy"],
+      "note": "Decided SUB — 808 means synth sub even when 'kick' is present"
+    },
+    {
+      "name": "sub_kick.wav",
+      "category": "SUB",
+      "tags": ["policy"],
+      "note": "Decided SUB when both sub and kick tokens are present"
+    },
+    {
+      "name": "harmony_gtr.wav",
+      "category": "GTR",
+      "tags": ["policy"],
+      "note": "Decided GTR — instrument token wins over harmony/BVS when both match"
+    },
+
+    {
+      "name": "throw_away_take.wav",
+      "category": "OTHER",
+      "tags": ["trap", "stretch"],
+      "note": "Full-word English collision with FX 'throw' — harder than short-token traps; stretch for v1"
+    },
+    {
+      "name": "noise_floor.wav",
+      "category": "OTHER",
+      "tags": ["trap", "stretch"]
+    },
+    {
+      "name": "bells_and_whistles.wav",
+      "category": "OTHER",
+      "tags": ["trap", "stretch"]
+    },
+    {
+      "name": "organ_donor.wav",
+      "category": "OTHER",
+      "tags": ["trap", "stretch"]
+    },
+    {
+      "name": "stack_overflow.wav",
+      "category": "OTHER",
+      "tags": ["trap", "stretch"]
+    },
+    {
+      "name": "guide_me.wav",
+      "category": "OTHER",
+      "tags": ["trap", "stretch"]
+    },
+    {
+      "name": "sweep_the_floor.wav",
+      "category": "OTHER",
+      "tags": ["trap", "stretch"]
+    }
+  ]
+}
