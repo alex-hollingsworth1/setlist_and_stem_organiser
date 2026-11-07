@@ -13,6 +13,7 @@ from setlist_organiser.models import Category, PlannedAction
 from setlist_organiser.organiser import execute_plan, output_folder_for_reveal
 from setlist_organiser.planner import plan_organisation
 from setlist_organiser.session_builder import build_session, parse_template
+from setlist_organiser.templates import get_ableton_template_path
 from setlist_organiser.config import (
     build_effective_keywords,
     load_keyword_overrides,
@@ -21,6 +22,8 @@ from setlist_organiser.config import (
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-insecure")
+
+SESSION_KEY_ABLETON_PATH = "open-ableton-session"
 
 
 def keyword_overrides_path() -> Path:
@@ -37,7 +40,7 @@ def keyword_overrides_path() -> Path:
 @app.get("/")
 def index():
     ableton_message = session.pop("ableton_build_message", None)
-    ableton_path = session.get("reveal-ableton-session")
+    ableton_path = session.get(SESSION_KEY_ABLETON_PATH)
     return render_template(
         "index.html",
         actions=None,
@@ -134,7 +137,7 @@ def reveal_in_finder():
 
 @app.get("/open-ableton-session")
 def open_in_ableton():
-    path_str = session.pop("reveal-ableton-session", None)
+    path_str = session.pop(SESSION_KEY_ABLETON_PATH, None)
     if not path_str:
         return redirect(url_for("index"))
     als_file = Path(path_str)
@@ -214,19 +217,18 @@ def build_and_open_session():
         source_root = source_root.parent
     output_path = source_root / "ABLETON" / "session.als"
 
-    project_root = Path(__file__).resolve().parent.parent.parent
-    template_path = project_root / "AH_BLANK Project" / "AH_BLANK - 2.als"
-    if not template_path.is_file():
-        session["ableton_build_message"] = f"Template not found: {template_path}"
-        return redirect(url_for("index"))
+    with get_ableton_template_path() as template_path:
+        if not template_path.is_file():
+            session["ableton_build_message"] = f"Template not found: {template_path}"
+            return redirect(url_for("index"))
 
-    parsed_template = parse_template(template_path)
-    build_session(parsed_template, actions, output_path)
+        parsed_template = parse_template(template_path)
+        build_session(parsed_template, actions, output_path)
 
     if sys.platform == "darwin":
         subprocess.run(["open", str(output_path)], check=False, capture_output=True)
 
-    session["open-ableton-session"] = str(output_path)
+    session[SESSION_KEY_ABLETON_PATH] = str(output_path)
     session["ableton_build_message"] = f"Ableton session generated: {output_path}"
     return redirect(url_for("index"))
 
