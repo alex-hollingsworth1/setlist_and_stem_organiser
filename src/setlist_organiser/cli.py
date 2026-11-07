@@ -13,13 +13,16 @@ from .organiser import execute_plan
 from .planner import plan_organisation
 from .config import load_keyword_overrides, build_effective_keywords
 from .reviewer import review_actions
+from .session_builder import build_session, parse_template
+from .templates import get_ableton_template_path
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
             "Scan SOURCE_DIR (non-recursive) for audio stems, classify by filename, "
-            "and copy into OUTPUT_ROOT/<CATEGORY>/."
+            "and copy into OUTPUT_ROOT/<CATEGORY>/. Optionally build an Ableton "
+            "Live session from the planned stems."
         )
     )
     parser.add_argument(
@@ -74,6 +77,17 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Add a numbered tag to each of the stem directories",
     )
+    parser.add_argument(
+        "--build-session",
+        type=Path,
+        default=None,
+        metavar="SESSION.als",
+        help=(
+            "Write an Ableton Live session to SESSION.als from the planned stems "
+            "(packaged template, or SETLIST_ORGANISER_ABLETON_TEMPLATE). "
+            "Skipped when --dry-run is set."
+        ),
+    )
 
     return parser
 
@@ -126,6 +140,7 @@ def main(argv: list[str] | None = None) -> int:
     review: bool = args.review
     move: bool = args.move
     numbered: bool = args.numbered
+    build_session_path: Path | None = args.build_session
 
     keywords = None
     if config_path:
@@ -184,6 +199,27 @@ def main(argv: list[str] | None = None) -> int:
     if not quiet and not show_other:
         mode = "Dry-run" if report.dry_run else ("Moved" if move else "Copied")
         print(f"{mode}: {report.copied_files} file(s).")
+
+    if build_session_path is not None:
+        if dry_run:
+            if not quiet:
+                print(f"Dry-run: would build Ableton session at {build_session_path}")
+        elif not actions_to_execute:
+            print("No planned actions available to build a session.", file=sys.stderr)
+            return 1
+        else:
+            try:
+                with get_ableton_template_path() as template_path:
+                    if not Path(template_path).is_file():
+                        print(f"Template not found: {template_path}", file=sys.stderr)
+                        return 1
+                    parsed = parse_template(Path(template_path))
+                    build_session(parsed, actions_to_execute, build_session_path)
+            except (OSError, ValueError, FileNotFoundError) as exc:
+                print(exc, file=sys.stderr)
+                return 1
+            if not quiet:
+                print(f"Ableton session written: {build_session_path}")
 
     return 0
 

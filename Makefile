@@ -3,6 +3,7 @@
 
 SOURCE_DIR ?= ../../AUDIO_FILES_FOR_TESTING
 OUTPUT_DIR ?= output
+SESSION ?= $(OUTPUT_DIR)/session.als
 
 # Use .venv when present; otherwise the current Python interpreter.
 PYTHON := $(shell if [ -x .venv/bin/python ]; then echo .venv/bin/python; else command -v python3 || command -v python; fi)
@@ -16,7 +17,7 @@ CLI := $(PYTHON) -m setlist_organiser.cli
 	test-webapp test-cli test-planner test-organiser test-config \
 	test-classifier test-reviewer test-session \
 	web web-5001 \
-	quiet show-other review summary dry-run move-dry run \
+	quiet show-other review summary dry-run move-dry run build-session \
 	doctor
 
 help:
@@ -37,6 +38,7 @@ help:
 	@echo "  make web-5001      Flask UI on :5001"
 	@echo "  make dry-run / run / quiet / show-other / review / summary / move-dry"
 	@echo "                     Organise stems (SOURCE_DIR / OUTPUT_DIR overridable)"
+	@echo "  make build-session Organise + write Ableton session (SESSION overridable)"
 
 doctor:
 	@echo "PYTHON=$(PYTHON)"
@@ -103,3 +105,6 @@ move-dry:
 
 run:
 	$(CLI) $(SOURCE_DIR) $(OUTPUT_DIR)
+
+build-session:
+	$(CLI) $(SOURCE_DIR) $(OUTPUT_DIR) --build-session $(SESSION)
